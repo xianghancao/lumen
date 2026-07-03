@@ -1,63 +1,47 @@
-export type JSONContent = {
-  type?: string;
-  attrs?: Record<string, unknown>;
-  content?: JSONContent[];
-  marks?: Array<{ type: string; attrs?: Record<string, unknown> }>;
-  text?: string;
+export type NotebookCell = {
+  cell_type: "code" | "markdown" | "raw";
+  source: string | string[];
+  metadata?: Record<string, unknown>;
 };
 
-export type MindNode = {
+export type NotebookContent = {
+  cells: NotebookCell[];
+};
+
+export type OutlineNode = {
+  /** Stable id for layout (`root`, `cell-0`, …) */
   id: string;
-  content: JSONContent;
-  children: string[];
-  parent: string | null;
-};
-
-export type LayoutSpacing = "compact" | "standard" | "spacious";
-
-export type NodeViewState = {
-  position?: { x: number; y: number };
-  dimensions?: { width: number; height: number };
-  manualDimensions?: boolean;
-  collapsed?: boolean;
-};
-
-export type SheetViewState = {
-  layoutSpacing: LayoutSpacing;
-  nodes: Record<string, NodeViewState>;
-};
-
-export type MindMapSheet = {
-  id: string;
+  /** Index into notebook.cells, or null for the virtual root */
+  cellIndex: number | null;
+  headingLevel: number | null;
   title: string;
-  root_id: string;
-  nodes: Record<string, MindNode>;
+  children: OutlineNode[];
 };
 
-export type MindMapFile = {
-  version: "1.0" | "1.1";
-  active_sheet_id?: string;
-  sheets: MindMapSheet[];
-  viewState?: Record<string, SheetViewState>;
-  root_id?: string;
-  nodes?: Record<string, MindNode>;
-};
-
-export type FlowEdge = {
+export type LayoutPosition = {
   id: string;
-  source: string;
-  target: string;
-  type?: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
 };
 
-export type FlowNode<TData extends Record<string, unknown>> = {
-  id: string;
-  type: string;
-  position: { x: number; y: number };
-  data: TData;
-  className?: string;
-  style?: {
-    width?: number;
-    height?: number;
-  };
+export type OutlineEdge = {
+  fromId: string;
+  toId: string;
+};
+
+/** Dagre rank direction for the outline tree layout. */
+export type TreeDirection = "TB" | "BT" | "LR" | "RL";
+
+/** Spacing preset for mind map node layout. */
+export type LayoutDensity = "compact" | "normal" | "loose";
+
+export type LayoutOptions = {
+  direction?: TreeDirection;
+  /** Collapsed node ids — their descendants are omitted from layout. */
+  collapsedIds?: ReadonlySet<string>;
+  density?: LayoutDensity;
+  /** Measured node box sizes used by the layout engine. */
+  nodeDimensions?: ReadonlyMap<string, { width: number; height: number }>;
 };

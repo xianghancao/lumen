@@ -1,0 +1,96 @@
+{
+  "title": "jupyterlab-lumen",
+  "description": "jupyterlab-lumen settings.",
+  "jupyter.lab.toolbars": {
+    "Notebook": [
+      {
+        "name": "open-mindmap",
+        "command": "jupyterlab-lumen:open-notebook-mindmap",
+        "label": "Lumen",
+        "rank": 41
+      }
+    ],
+    "Lumen Mind Map": [
+      { "name": "save", "rank": 10 },
+      { "name": "insert", "rank": 20 },
+      { "name": "cut", "rank": 21 },
+      { "name": "copy", "rank": 22 },
+      { "name": "paste", "rank": 23 },
+      { "name": "run", "rank": 30 },
+      { "name": "interrupt", "rank": 31 },
+      { "name": "restart", "rank": 32 },
+      { "name": "restart-and-run", "rank": 33 },
+      { "name": "cellType", "rank": 40 },
+      { "name": "spacer", "type": "spacer", "rank": 100 },
+      { "name": "kernelName", "rank": 1000 },
+      { "name": "executionProgress", "rank": 1002 }
+    ]
+  },
+  "jupyter.lab.transform": true,
+  "type": "object",
+  "properties": {
+    "toolbar": {
+      "title": "Lumen mind map toolbar items",
+      "description": "Note: To disable a toolbar item,\ncopy it to User Preferences and add the\n\"disabled\" key.",
+      "items": {
+        "$ref": "#/definitions/toolbarItem"
+      },
+      "type": "array",
+      "default": []
+    }
+  },
+  "additionalProperties": false,
+  "definitions": {
+    "toolbarItem": {
+      "properties": {
+        "name": {
+          "title": "Unique name",
+          "type": "string"
+        },
+        "args": {
+          "title": "Command arguments",
+          "type": "object"
+        },
+        "command": {
+          "title": "Command id",
+          "type": "string",
+          "default": ""
+        },
+        "disabled": {
+          "title": "Whether the item is ignored or not",
+          "type": "boolean",
+          "default": false
+        },
+        "icon": {
+          "title": "Item icon id",
+          "description": "If defined, it will override the command icon",
+          "type": "string"
+        },
+        "label": {
+          "title": "Item label",
+          "description": "If defined, it will override the command label",
+          "type": "string"
+        },
+        "caption": {
+          "title": "Item caption",
+          "description": "If defined, it will override the command caption",
+          "type": "string"
+        },
+        "type": {
+          "title": "Item type",
+          "type": "string",
+          "enum": ["command", "spacer"]
+        },
+        "rank": {
+          "title": "Item rank",
+          "type": "number",
+          "minimum": 0,
+          "default": 50
+        }
+      },
+      "required": ["name"],
+      "additionalProperties": false,
+      "type": "object"
+    }
+  }
+}

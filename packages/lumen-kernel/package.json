@@ -1,7 +1,7 @@
 {
   "name": "lumen-kernel",
-  "version": "0.1.0",
-  "description": "Lumen block tree kernel: layout, file format, and notebook adapters",
+  "version": "0.2.0",
+  "description": "Notebook outline tree and dagre layout for Lumen",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",

@@ -48,3 +48,9 @@ venv/
 .vite/
 .turbo/
 coverage/
+.yarn/cache
+.yarn/install-state.gz
+.yarn/unplugged
+
+# Archived stack (keep out of installs)
+old_lumen/node_modules/

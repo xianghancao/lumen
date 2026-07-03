@@ -2,65 +2,279 @@ import {
   JupyterFrontEnd,
   JupyterFrontEndPlugin,
 } from "@jupyterlab/application";
-import { ICommandPalette } from "@jupyterlab/apputils";
-import { DocumentRegistry } from "@jupyterlab/docregistry";
-import { INotebookTracker } from "@jupyterlab/notebook";
-import { LUMEN_FILE_EXTENSIONS } from "lumen-kernel";
-import { LumenWidgetFactory } from "./widget";
+import {
+  createToolbarFactory,
+  ICommandPalette,
+  IToolbarWidgetRegistry,
+} from "@jupyterlab/apputils";
+import { IEditorServices } from "@jupyterlab/codeeditor";
+import { PathExt } from "@jupyterlab/coreutils";
+import { IDocumentManager } from "@jupyterlab/docmanager";
+import {
+  INotebookTracker,
+  NotebookActions,
+  NotebookPanel,
+} from "@jupyterlab/notebook";
+import { IRenderMimeRegistry } from "@jupyterlab/rendermime";
+import { ISettingRegistry } from "@jupyterlab/settingregistry";
+import { ITranslator, nullTranslator } from "@jupyterlab/translation";
+import {
+  addIcon,
+  copyIcon,
+  cutIcon,
+  pasteIcon,
+  ToolbarButton,
+} from "@jupyterlab/ui-components";
+import {
+  NotebookMindMapWidgetFactory,
+} from "./notebookMindMapWidget";
+import { registerMindMapToolbarFactories } from "./mindMapToolbar";
+import {
+  bindNotebookToMindMapSync,
+  syncNotebookPanelToMindMaps,
+} from "./notebookViewSync";
+import { NotebookMindMapTracker } from "./tracker";
+
+const PLUGIN_ID = "jupyterlab-lumen:plugin";
 
 namespace CommandIDs {
-  export const openNotebookAsMindMap = "jupyterlab-lumen:open-notebook-as-mindmap";
+  export const openNotebookMindMap =
+    "jupyterlab-lumen:open-notebook-mindmap";
+  export const addMindMap = "jupyterlab-lumen:add-mindmap";
+  export const insertCellBelow = "jupyterlab-lumen:insert-cell-below";
+  export const cutCell = "jupyterlab-lumen:cut-cell";
+  export const copyCell = "jupyterlab-lumen:copy-cell";
+  export const pasteCellBelow = "jupyterlab-lumen:paste-cell-below";
 }
 
-const FILE_TYPE: DocumentRegistry.IFileType = {
-  name: "lumen",
-  displayName: "Lumen Mind Map",
-  extensions: [...LUMEN_FILE_EXTENSIONS],
-  mimeTypes: ["application/json"],
-  contentType: "file",
-  fileFormat: "text",
+type OpenNotebookMindMapArgs = {
+  path?: string;
+  toolbar?: boolean;
+};
+
+const resolveNotebookPath = (
+  args: OpenNotebookMindMapArgs,
+  notebookTracker: INotebookTracker,
+): string | null => {
+  if (args.path) {
+    return args.path;
+  }
+
+  return notebookTracker.currentWidget?.context.path ?? null;
 };
 
 const plugin: JupyterFrontEndPlugin<void> = {
-  id: "jupyterlab-lumen:plugin",
-  description: "Open Lumen mind map files in JupyterLab.",
+  id: PLUGIN_ID,
+  description: "Spatial notebook mind map using native Jupyter cell renderers.",
   autoStart: true,
-  optional: [ICommandPalette, INotebookTracker],
+  requires: [
+    IRenderMimeRegistry,
+    IDocumentManager,
+    NotebookPanel.IContentFactory,
+    IEditorServices,
+    INotebookTracker,
+    IToolbarWidgetRegistry,
+    ISettingRegistry,
+    ITranslator,
+  ],
+  optional: [ICommandPalette],
   activate: (
     app: JupyterFrontEnd,
+    rendermime: IRenderMimeRegistry,
+    docManager: IDocumentManager,
+    contentFactory: NotebookPanel.IContentFactory,
+    editorServices: IEditorServices,
+    notebookTracker: INotebookTracker,
+    toolbarRegistry: IToolbarWidgetRegistry,
+    settingRegistry: ISettingRegistry,
+    translator: ITranslator,
     palette: ICommandPalette | null,
-    notebookTracker: INotebookTracker | null,
   ) => {
-    const { docRegistry } = app;
+    const mindMapTracker = new NotebookMindMapTracker();
+    const factoryName = NotebookMindMapWidgetFactory.NAME;
 
-    docRegistry.addFileType(FILE_TYPE);
-    docRegistry.addWidgetFactory(new LumenWidgetFactory());
+    const getActiveNotebook = () =>
+      mindMapTracker.currentWidget?.content.notebook ?? null;
 
-    app.commands.addCommand(CommandIDs.openNotebookAsMindMap, {
-      label: "Open Notebook as Lumen Mind Map",
-      caption: "Convert the active notebook into a Lumen mind map file (MVP)",
-      isEnabled: () => Boolean(notebookTracker?.currentWidget),
-      execute: () => {
-        const notebookPanel = notebookTracker?.currentWidget;
+    const registerNotebookCommand = (
+      id: string,
+      options: {
+        label: string;
+        caption: string;
+        icon: typeof addIcon;
+        execute: (notebook: NonNullable<ReturnType<typeof getActiveNotebook>>) => void;
+      },
+    ) => {
+      app.commands.addCommand(id, {
+        label: options.label,
+        caption: options.caption,
+        icon: options.icon,
+        isEnabled: () => getActiveNotebook() !== null,
+        execute: () => {
+          const notebook = getActiveNotebook();
 
-        if (!notebookPanel) {
-          return;
-        }
+          if (!notebook) {
+            return;
+          }
 
-        void app.commands.execute("docmanager:open", {
-          path: notebookPanel.context.path.replace(/\.ipynb$/i, ".lumen.json"),
-        });
+          options.execute(notebook);
+        },
+      });
+    };
+
+    const trans = (translator ?? nullTranslator).load("jupyterlab");
+
+    registerNotebookCommand(CommandIDs.insertCellBelow, {
+      label: trans.__("Insert a cell below"),
+      caption: trans.__("Insert a cell below"),
+      icon: addIcon,
+      execute: (notebook) => {
+        NotebookActions.insertBelow(notebook);
       },
     });
 
+    registerNotebookCommand(CommandIDs.cutCell, {
+      label: trans.__("Cut Cell"),
+      caption: trans.__("Cut the selected cells"),
+      icon: cutIcon,
+      execute: (notebook) => {
+        NotebookActions.cut(notebook);
+      },
+    });
+
+    registerNotebookCommand(CommandIDs.copyCell, {
+      label: trans.__("Copy Cell"),
+      caption: trans.__("Copy the selected cells"),
+      icon: copyIcon,
+      execute: (notebook) => {
+        NotebookActions.copy(notebook);
+      },
+    });
+
+    registerNotebookCommand(CommandIDs.pasteCellBelow, {
+      label: trans.__("Paste Cell Below"),
+      caption: trans.__("Paste cells from the clipboard"),
+      icon: pasteIcon,
+      execute: (notebook) => {
+        NotebookActions.paste(notebook, "below");
+      },
+    });
+
+    app.commands.addCommand(CommandIDs.addMindMap, {
+      label: trans.__("Add Mind Map"),
+      caption: trans.__("Create a new notebook in this folder and open it as a mind map"),
+      icon: addIcon,
+      isEnabled: () => mindMapTracker.currentWidget !== null,
+      execute: async () => {
+        const panel = mindMapTracker.currentWidget;
+
+        if (!panel) {
+          return;
+        }
+
+        const directory = PathExt.dirname(panel.context.localPath);
+        const model = await docManager.newUntitled({
+          path: directory,
+          type: "notebook",
+        });
+
+        return docManager.openOrReveal(model.path, factoryName);
+      },
+    });
+
+    const toolbarFactory = createToolbarFactory(
+      toolbarRegistry,
+      settingRegistry,
+      factoryName,
+      PLUGIN_ID,
+      translator,
+    );
+
+    const factory = new NotebookMindMapWidgetFactory(
+      rendermime,
+      contentFactory,
+      editorServices.mimeTypeService,
+      app.commands,
+      toolbarFactory,
+    );
+
+    app.docRegistry.addWidgetFactory(factory);
+
+    registerMindMapToolbarFactories(
+      toolbarRegistry,
+      factoryName,
+      translator ?? nullTranslator,
+    );
+
+    factory.widgetCreated.connect((_, widget) => {
+      void mindMapTracker.add(widget);
+
+      notebookTracker.forEach((panel) => {
+        if (panel.context.path === widget.context.path) {
+          widget.content.syncActiveCellFromNotebook(
+            panel.content.activeCellIndex,
+          );
+        }
+      });
+    });
+
+    notebookTracker.forEach((panel) => {
+      bindNotebookToMindMapSync(panel, mindMapTracker);
+    });
+
+    notebookTracker.widgetAdded.connect((_, panel) => {
+      bindNotebookToMindMapSync(panel, mindMapTracker);
+    });
+
+    notebookTracker.currentChanged.connect((_, panel) => {
+      if (panel) {
+        syncNotebookPanelToMindMaps(panel, mindMapTracker);
+      }
+    });
+
+    const openMindMap = (path: string) =>
+      docManager.openOrReveal(path, factoryName);
+
+    app.commands.addCommand(CommandIDs.openNotebookMindMap, {
+      label: trans.__("Lumen"),
+      caption: trans.__("Open this notebook in the Lumen mind map view"),
+      isEnabled: (args: OpenNotebookMindMapArgs) =>
+        Boolean(resolveNotebookPath(args, notebookTracker)),
+      execute: (args: OpenNotebookMindMapArgs) => {
+        const path = resolveNotebookPath(args, notebookTracker);
+
+        if (!path) {
+          return;
+        }
+
+        return openMindMap(path);
+      },
+    });
+
+    toolbarRegistry.addFactory(
+      "Notebook",
+      "open-mindmap",
+      (panel: NotebookPanel) =>
+        new ToolbarButton({
+          className: "jp-LumenNotebookOpenButton",
+          label: trans.__("Lumen"),
+          tooltip: trans.__("Open this notebook in the Lumen mind map view"),
+          onClick: () => {
+            void app.commands.execute(CommandIDs.openNotebookMindMap, {
+              path: panel.context.path,
+            });
+          },
+        }),
+    );
+
     if (palette) {
       palette.addItem({
-        command: CommandIDs.openNotebookAsMindMap,
+        command: CommandIDs.openNotebookMindMap,
         category: "Lumen",
       });
     }
 
-    console.info("jupyterlab-lumen: extension activated");
+    console.info("jupyterlab-lumen: refactor extension activated");
   },
 };
 

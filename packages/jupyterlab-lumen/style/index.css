@@ -1,8 +1,12 @@
-@import "katex/dist/katex.min.css";
+@import url("https://fonts.googleapis.com/css2?family=Great+Vibes&display=swap");
 
-.jp-LumenDocument,
-.jp-LumenEditorWidget,
-.jp-LumenEditor {
+.jp-LumenNotebookMindMapDocument .jp-Toolbar {
+  border-bottom: 1px solid var(--jp-border-color2);
+  flex: 0 0 auto;
+}
+
+.jp-LumenNotebookMindMap,
+.jp-LumenNotebookMindMapDocument {
   display: flex;
   flex-direction: column;
   height: 100%;
@@ -10,107 +14,847 @@
   width: 100%;
 }
 
-.jp-LumenEditor-header {
+.jp-LumenNotebookMindMap-header {
   align-items: center;
   border-bottom: 1px solid var(--jp-border-color2);
+  color: var(--jp-ui-font-color2);
   display: flex;
+  flex: 0 0 auto;
+  font-size: var(--jp-ui-font-size1);
   gap: 12px;
   justify-content: space-between;
-  min-height: 42px;
   padding: 8px 14px;
 }
 
-.jp-LumenEditor-header span {
+.jp-LumenNotebookMindMap-header-title {
+  background: transparent;
+  border: none;
+  color: var(--jp-ui-font-color1);
+  cursor: pointer;
+  flex: 0 0 auto;
+  font-family: var(--jp-ui-font-family);
+  font-size: var(--jp-ui-font-size1);
+  font-weight: 600;
+  line-height: 100%;
+  padding: 4px 0;
+}
+
+.jp-LumenNotebookMindMap-header-title:hover {
+  color: var(--jp-brand-color1);
+}
+
+.jp-LumenLogo,
+.jp-LumenNotebookOpenButton .jp-ToolbarButtonComponent-label {
+  background: linear-gradient(
+    135deg,
+    #ffeaa7 0%,
+    #f5c842 35%,
+    #d4af37 70%,
+    #b8860b 100%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  font-family: "Great Vibes", "Segoe Script", "Snell Roundhand", cursive;
+  font-size: var(--jp-ui-font-size1);
+  font-style: normal;
+  font-weight: 400;
+  letter-spacing: 0.01em;
+  line-height: 100%;
+  -webkit-text-fill-color: transparent;
+}
+
+.jp-LumenLogo--header {
+  display: inline-block;
+  padding: 0 2px;
+}
+
+.jp-LumenNotebookMindMap-header-title.jp-LumenLogo {
+  background: linear-gradient(
+    135deg,
+    #ffeaa7 0%,
+    #f5c842 35%,
+    #d4af37 70%,
+    #b8860b 100%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  font-weight: 400;
+  -webkit-text-fill-color: transparent;
+}
+
+.jp-LumenNotebookMindMap-header-title.jp-LumenLogo:hover {
+  color: transparent;
+  filter: brightness(1.08);
+}
+
+.jp-LumenNotebookOpenButton.jp-ToolbarButtonComponent {
+  min-width: auto;
+  padding-inline: 8px;
+}
+
+.jp-LumenNotebookOpenButton:hover .jp-ToolbarButtonComponent-label {
+  filter: brightness(1.08);
+}
+
+.jp-LumenProductDropdown-menu {
+  left: 0;
+  max-width: 360px;
+  min-width: 280px;
+  right: auto;
+}
+
+.jp-LumenProductDropdown-features {
+  list-style: disc;
+  margin: 0;
+  padding: 0 10px 8px 24px;
+}
+
+.jp-LumenProductDropdown-feature {
+  color: var(--jp-ui-font-color2);
+  font-size: inherit;
+  line-height: 1.45;
+  margin: 0 0 4px;
+}
+
+.jp-LumenProductDropdown-version {
+  font-weight: 600;
+  text-align: left;
+}
+
+.jp-LumenProductDropdown-version:disabled {
+  cursor: wait;
+  opacity: 0.85;
+}
+
+.jp-LumenProductDropdown-link {
+  color: var(--jp-brand-color1);
+  display: block;
+  font-weight: 600;
+  text-align: left;
+  text-decoration: none;
+  word-break: break-all;
+}
+
+.jp-LumenProductDropdown-link:hover {
+  background: var(--jp-layout-color2);
+  text-decoration: underline;
+}
+
+.jp-LumenNotebookMindMap-header-left {
+  align-items: center;
+  display: flex;
+  flex: 0 0 auto;
+  gap: 8px;
+}
+
+.jp-LumenNotebookMindMap-header-right {
+  align-items: center;
+  display: flex;
+  flex: 0 0 auto;
+  gap: 12px;
+  margin-left: auto;
+}
+
+.jp-LumenNotebookMindMap-format-toolbar {
+  align-items: center;
+  display: inline-flex;
+  gap: 4px;
+}
+
+.jp-LumenNotebookMindMap-format-btn {
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  color: var(--jp-ui-font-color1);
+  cursor: pointer;
+  font-family: var(--jp-ui-font-family);
+  font-size: var(--jp-ui-font-size1);
+  font-weight: 600;
+  line-height: 100%;
+  min-width: 44px;
+  padding: 4px 8px;
+}
+
+.jp-LumenNotebookMindMap-format-btn:hover:not(:disabled) {
+  background: var(--jp-brand-color1);
+  color: var(--jp-ui-inverse-font-color1);
+}
+
+.jp-LumenNotebookMindMap-format-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.jp-LumenFormatDropdown {
+  position: relative;
+}
+
+.jp-LumenFormatDropdown-menu {
+  background: var(--jp-layout-color1);
+  border: 1px solid var(--jp-border-color2);
+  border-radius: 4px;
+  box-shadow: var(--jp-elevation-z4);
+  display: none;
+  font-family: var(--jp-ui-font-family);
+  font-size: var(--jp-ui-font-size1);
+  min-width: 148px;
+  padding: 4px;
+  position: absolute;
+  right: 0;
+  top: calc(100% + 4px);
+  z-index: 1000;
+}
+
+.jp-LumenFormatDropdown-menu.is-open {
+  display: block;
+}
+
+.jp-LumenFormatDropdown-menu-wide {
+  min-width: 180px;
+}
+
+.jp-LumenFormatDropdown-item {
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  color: var(--jp-ui-font-color1);
+  cursor: pointer;
+  display: block;
+  font-family: inherit;
+  font-size: inherit;
+  font-weight: 600;
+  line-height: 100%;
+  padding: 6px 10px;
+  text-align: left;
+  width: 100%;
+}
+
+.jp-LumenFormatDropdown-item:hover {
+  background: var(--jp-layout-color2);
+}
+
+.jp-LumenFormatDropdown-section {
+  color: var(--jp-ui-font-color3);
+  font-family: inherit;
+  font-size: inherit;
+  font-weight: 600;
+  padding: 6px 10px 4px;
+}
+
+.jp-LumenFormatColorSwatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 4px 10px 8px;
+}
+
+.jp-LumenFormatColorSwatch {
+  border: 1px solid var(--jp-border-color2);
+  border-radius: 50%;
+  cursor: pointer;
+  height: 18px;
+  padding: 0;
+  width: 18px;
+}
+
+.jp-LumenFormatDropdown-item.is-active {
+  background: var(--jp-brand-color3);
+  font-weight: 600;
+}
+
+.jp-LumenFormatColorSwatch.is-active {
+  box-shadow: 0 0 0 2px var(--jp-brand-color1);
+}
+
+.jp-LumenFormatColorSwatch-default {
+  background: linear-gradient(
+    135deg,
+    var(--jp-layout-color1) 45%,
+    var(--jp-border-color2) 45%,
+    var(--jp-border-color2) 55%,
+    var(--jp-layout-color1) 55%
+  );
+}
+
+.jp-LumenNotebookMindMap-appearance-toolbar {
+  align-items: center;
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.jp-LumenAppearanceDropdown-btn {
+  min-width: 44px;
+}
+
+.jp-LumenAppearanceDropdown-menu {
+  left: 0;
+  right: auto;
+}
+
+.jp-LumenNotebookMindMap-style-toolbar {
+  align-items: center;
+  display: flex;
+  flex: 0 0 auto;
+}
+
+.jp-LumenStyleDropdown-menu {
+  left: 0;
+  min-width: 120px;
+  right: auto;
+}
+
+.jp-LumenNotebookMindMap-layout-toolbar {
+  align-items: center;
+  display: flex;
+  flex: 0 0 auto;
+}
+
+.jp-LumenLayoutDropdown-menu {
+  left: 0;
+  min-width: 120px;
+  right: auto;
+}
+
+.jp-LumenNotebookMindMap-background-toolbar {
+  align-items: center;
+  display: flex;
+  flex: 0 0 auto;
+}
+
+.jp-LumenBackgroundDropdown-menu {
+  left: 0;
+  min-width: 132px;
+  right: auto;
+}
+
+.jp-LumenNotebookMindMap-direction-toolbar {
+  align-items: center;
+  display: flex;
+  flex: 0 0 auto;
+}
+
+.jp-LumenDirectionDropdown-trigger {
+  min-width: 44px;
+}
+
+.jp-LumenDirectionDropdown-item {
+  font-size: inherit;
+  justify-content: center;
+  min-width: 36px;
+  text-align: center;
+}
+
+.jp-LumenDirectionDropdown-menu {
+  left: 0;
+  min-width: auto;
+  padding: 4px;
+  right: auto;
+}
+
+.jp-LumenDirectionDropdown-item.is-active {
+  background: var(--jp-brand-color3);
+  color: var(--jp-ui-font-color1);
+  font-weight: 600;
+}
+
+.jp-LumenNotebookMindMap-guide-toolbar {
+  align-items: center;
+  display: flex;
+  flex: 0 0 auto;
+}
+
+.jp-LumenGuideDropdown-menu {
+  min-width: 320px;
+  padding: 8px;
+  right: 0;
+}
+
+.jp-LumenGuideDropdown-title {
+  color: var(--jp-ui-font-color2);
+  font-size: var(--jp-ui-font-size1);
+  font-weight: 600;
+  margin-bottom: 6px;
+  padding: 2px 6px 6px;
+}
+
+.jp-LumenGuideDropdown-row {
+  align-items: center;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: 120px 1fr;
+  padding: 4px 6px;
+}
+
+.jp-LumenGuideDropdown-key {
+  background: var(--jp-layout-color2);
+  border: 1px solid var(--jp-border-color2);
+  border-radius: 4px;
+  color: var(--jp-ui-font-color1);
+  font-family: var(--jp-ui-font-family);
+  font-size: var(--jp-ui-font-size1);
+  font-weight: 600;
+  padding: 2px 6px;
+  white-space: nowrap;
+}
+
+.jp-LumenGuideDropdown-desc {
   color: var(--jp-ui-font-color2);
   font-size: var(--jp-ui-font-size1);
 }
 
-.jp-LumenEditor-canvas {
-  flex: 1 1 auto;
-  min-height: 0;
-  position: relative;
+.jp-LumenNotebookMindMap-header-left .jp-ToolbarButtonComponent {
+  font-size: var(--jp-ui-font-size1);
+  font-weight: 600;
 }
 
-.jp-LumenEditor-canvas .react-flow {
-  background: var(--jp-layout-color1);
+.jp-LumenNotebookMindMap-header-left
+  .jp-ToolbarButtonComponent
+  .jp-ToolbarButtonComponent-label {
+  font-size: var(--jp-ui-font-size1);
 }
 
-.react-flow__node-mindMapNode {
-  overflow: visible;
-}
-
-.react-flow__node-mindMapNode.is-auto-sized {
-  height: auto;
-  width: 280px;
-}
-
-.mind-node {
-  background: var(--jp-layout-color0);
-  border: 2px solid var(--jp-border-color2);
-  border-radius: 14px;
-  box-shadow: var(--jp-elevation-z2);
-  box-sizing: border-box;
-  height: auto;
-  min-height: 78px;
-  padding: 12px 14px;
-  position: relative;
-  width: 100%;
-}
-
-.mind-node.is-selected {
-  border-color: var(--jp-brand-color1);
-}
-
-.mind-node.is-editing {
-  border-color: var(--jp-brand-color1);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--jp-brand-color1) 18%, transparent);
-}
-
-.node-editor {
-  min-height: 24px;
+.jp-LumenNotebookMindMap-viewport:focus {
   outline: none;
 }
 
-.node-editor p {
-  margin: 0 0 0.35rem;
+.jp-LumenNotebookMindMap-viewport:focus-visible {
+  box-shadow: inset 0 0 0 1px var(--jp-brand-color1);
 }
 
-.node-editor pre {
-  background: var(--jp-layout-color2);
-  border-radius: 8px;
-  overflow: auto;
-  padding: 8px 10px;
-}
-
-.node-editor .math-source-inline,
-.node-editor .math-source-block {
-  background: color-mix(in srgb, var(--jp-brand-color1) 10%, transparent);
+.jp-LumenNotebookMindMap-direction-btn {
+  background: transparent;
+  border: none;
   border-radius: 4px;
-}
-
-.node-toolbar {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-  margin-top: 8px;
-}
-
-.node-toolbar button {
-  font-size: 11px;
+  color: var(--jp-ui-font-color1);
+  cursor: pointer;
+  font-family: var(--jp-ui-font-family);
+  font-size: var(--jp-ui-font-size1);
+  font-weight: 600;
+  line-height: 100%;
+  min-width: 30px;
   padding: 4px 8px;
 }
 
-.react-flow__handle {
-  opacity: 0;
+.jp-LumenNotebookMindMap-direction-btn:hover {
+  background: var(--jp-brand-color1);
+  color: var(--jp-ui-inverse-font-color1);
 }
 
-.react-flow__edge .react-flow__edge-path {
-  stroke: var(--jp-border-color2);
-  stroke-width: 2;
+.jp-LumenMindMapNotebook-mount {
+  height: 1px;
+  left: -10000px;
+  overflow: hidden;
+  pointer-events: none;
+  position: fixed;
+  top: 0;
+  width: 1px;
 }
 
-.react-flow__edge:hover .react-flow__edge-path,
-.react-flow__edge.selected .react-flow__edge-path {
-  stroke: var(--jp-brand-color1);
-  stroke-width: 3;
+.jp-LumenMindMap-measure-host {
+  left: -10000px;
+  overflow: hidden;
+  pointer-events: none;
+  position: absolute;
+  top: 0;
+  visibility: hidden;
+  width: 520px;
+}
+
+.jp-LumenNotebookMindMap-viewport {
+  background: var(--jp-layout-color1);
+  cursor: grab;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+  position: relative;
+}
+
+.jp-LumenNotebookMindMap-viewport[data-lumen-background="plain"] {
+  background: var(--jp-layout-color0);
+}
+
+.jp-LumenNotebookMindMap-viewport[data-lumen-background="grid"] {
+  background-color: var(--jp-layout-color1);
+  background-image:
+    linear-gradient(var(--jp-border-color3) 1px, transparent 1px),
+    linear-gradient(90deg, var(--jp-border-color3) 1px, transparent 1px);
+  background-size: 28px 28px;
+}
+
+.jp-LumenNotebookMindMap-viewport[data-lumen-background="dots"] {
+  background-color: var(--jp-layout-color1);
+  background-image: radial-gradient(
+    circle,
+    var(--jp-border-color3) 1px,
+    transparent 1px
+  );
+  background-size: 20px 20px;
+}
+
+.jp-LumenNotebookMindMap-viewport[data-lumen-background="gradient"] {
+  background:
+    radial-gradient(
+      ellipse at top left,
+      var(--jp-layout-color2) 0%,
+      transparent 55%
+    ),
+    radial-gradient(
+      ellipse at bottom right,
+      var(--jp-layout-color2) 0%,
+      transparent 55%
+    ),
+    var(--jp-layout-color1);
+}
+
+.jp-LumenNotebookMindMap-viewport[data-lumen-background="eye-care"] {
+  background-color: #e6efe3;
+}
+
+.jp-mod-dark .jp-LumenNotebookMindMap-viewport[data-lumen-background="eye-care"] {
+  background-color: #1c261f;
+}
+
+.jp-LumenNotebookMindMap-viewport[data-lumen-background="newspaper"] {
+  background-color: #f3ecdf;
+  background-image:
+    linear-gradient(
+      180deg,
+      rgb(0 0 0 / 2%) 0,
+      transparent 2px,
+      transparent 28px,
+      rgb(0 0 0 / 2%) 29px
+    ),
+    radial-gradient(
+      ellipse at 20% 30%,
+      rgb(255 255 255 / 35%) 0,
+      transparent 55%
+    ),
+    radial-gradient(
+      ellipse at 80% 70%,
+      rgb(0 0 0 / 3%) 0,
+      transparent 50%
+    );
+  background-size:
+    100% 30px,
+    100% 100%,
+    100% 100%;
+}
+
+.jp-mod-dark .jp-LumenNotebookMindMap-viewport[data-lumen-background="newspaper"] {
+  background-color: #2a241c;
+  background-image:
+    linear-gradient(
+      180deg,
+      rgb(255 255 255 / 3%) 0,
+      transparent 2px,
+      transparent 28px,
+      rgb(255 255 255 / 3%) 29px
+    ),
+    radial-gradient(
+      ellipse at 20% 30%,
+      rgb(255 255 255 / 4%) 0,
+      transparent 55%
+    ),
+    radial-gradient(
+      ellipse at 80% 70%,
+      rgb(0 0 0 / 12%) 0,
+      transparent 50%
+    );
+}
+
+.jp-LumenNotebookMindMap-viewport.is-panning,
+.jp-LumenNotebookMindMap-viewport.is-node-dragging {
+  cursor: grabbing;
+  user-select: none;
+}
+
+.jp-LumenNotebookMindMap:fullscreen {
+  height: 100%;
+  width: 100%;
+}
+
+.jp-LumenNotebookMindMap-status {
+  align-items: center;
+  background: var(--jp-layout-color2);
+  border: 1px solid var(--jp-border-color2);
+  border-radius: 6px;
+  bottom: 12px;
+  box-shadow: var(--jp-elevation-z2);
+  color: var(--jp-ui-font-color1);
+  display: flex;
+  font-family: var(--jp-ui-font-family);
+  font-size: var(--jp-ui-font-size1);
+  gap: 12px;
+  padding: 6px 10px;
+  pointer-events: none;
+  position: absolute;
+  right: 12px;
+  z-index: 2;
+}
+
+.jp-LumenNotebookMindMap-status-node,
+.jp-LumenNotebookMindMap-status-zoom-btn {
+  font-family: inherit;
+  font-size: inherit;
+  font-weight: 600;
+  line-height: 100%;
+}
+
+.jp-LumenNotebookMindMap-status-zoom {
+  pointer-events: auto;
+  position: relative;
+}
+
+.jp-LumenNotebookMindMap-status-zoom-btn {
+  background: transparent;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+  padding: 0;
+  white-space: nowrap;
+}
+
+.jp-LumenNotebookMindMap-status-zoom-btn:hover {
+  color: var(--jp-brand-color2);
+}
+
+.jp-LumenNotebookMindMap-status-fullscreen {
+  pointer-events: auto;
+}
+
+.jp-LumenNotebookMindMap-status-fullscreen-btn {
+  align-items: center;
+  background: transparent;
+  border: none;
+  color: var(--jp-ui-font-color1);
+  cursor: pointer;
+  display: inline-flex;
+  height: 16px;
+  justify-content: center;
+  padding: 0;
+  width: 16px;
+}
+
+.jp-LumenNotebookMindMap-status-fullscreen-btn:hover {
+  color: var(--jp-brand-color2);
+}
+
+.jp-LumenNotebookMindMap-status-fullscreen-btn .jp-Icon,
+.jp-LumenNotebookMindMap-status-fullscreen-btn svg {
+  height: 16px;
+  width: 16px;
+}
+
+.jp-LumenZoomDropdown-menu {
+  bottom: calc(100% + 6px);
+  left: auto;
+  max-height: 240px;
+  min-width: 88px;
+  overflow-y: auto;
+  right: 0;
+  top: auto;
+  z-index: 1000;
+}
+
+.jp-LumenZoomDropdown-item {
+  font-weight: 600;
+  text-align: center;
+}
+
+.jp-LumenZoomDropdown-item.is-active {
+  background: var(--jp-brand-color3);
+  color: var(--jp-ui-font-color1);
+  font-weight: 600;
+}
+
+.jp-LumenNotebookMindMap-scene {
+  left: 0;
+  position: absolute;
+  top: 0;
+  transform-origin: 0 0;
+  will-change: transform;
+}
+
+.jp-LumenMindMapNotebook-scene.jp-Notebook {
+  --lumen-edge-color: var(--jp-border-color2);
+  --lumen-edge-width: 3pt;
+  --lumen-node-background: var(--jp-layout-color0);
+  --lumen-node-border-color: var(--jp-border-color2);
+  --lumen-node-border-radius: 8px;
+  --lumen-node-border-width: 1px;
+  --lumen-node-shadow: 0 1px 4px rgb(0 0 0 / 8%);
+  background: transparent;
+  overflow: visible;
+}
+
+.jp-LumenMindMapNotebook-scene[data-lumen-theme="soft"] {
+  --lumen-edge-color: var(--jp-brand-color2);
+  --lumen-node-background: var(--jp-layout-color1);
+  --lumen-node-border-color: var(--jp-border-color1);
+  --lumen-node-border-radius: 12px;
+  --lumen-node-shadow: 0 2px 10px rgb(0 0 0 / 6%);
+}
+
+.jp-LumenMindMapNotebook-scene[data-lumen-theme="contrast"] {
+  --lumen-edge-color: var(--jp-brand-color1);
+  --lumen-node-background: var(--jp-layout-color0);
+  --lumen-node-border-color: var(--jp-brand-color1);
+  --lumen-node-border-radius: 6px;
+  --lumen-node-border-width: 2px;
+  --lumen-node-shadow: var(--jp-elevation-z2);
+}
+
+.jp-LumenMindMapNotebook-scene[data-lumen-theme="contrast"]
+  .jp-LumenNotebookMindMap-cellNode[data-lumen-frame="code"] {
+  --lumen-node-background: var(--jp-layout-color1);
+}
+
+.jp-LumenNotebookMindMap-edges {
+  left: 0;
+  pointer-events: none;
+  position: absolute;
+  top: 0;
+  z-index: 0;
+}
+
+.jp-LumenNotebookMindMap-edge {
+  fill: none;
+  stroke: var(--lumen-edge-color);
+  stroke-width: var(--lumen-edge-width);
+}
+
+.jp-LumenMindMapNotebook-scene[data-lumen-edge-style="dashed"]
+  .jp-LumenNotebookMindMap-edge {
+  stroke-dasharray: 8 4;
+}
+
+.jp-LumenMindMapNotebook-scene[data-lumen-edge-style="dotted"]
+  .jp-LumenNotebookMindMap-edge {
+  stroke-dasharray: 2 4;
+}
+
+.jp-LumenNotebookMindMap-cellNode {
+  background: var(--lumen-node-background);
+  border-color: var(--lumen-node-border-color);
+  border-radius: var(--lumen-node-border-radius);
+  border-style: solid;
+  border-width: var(--lumen-node-border-width);
+  box-shadow: var(--lumen-node-shadow);
+  box-sizing: border-box;
+  cursor: default;
+  overflow: hidden;
+  padding-left: 20px;
+  z-index: 1;
+}
+
+.jp-LumenMindMapNotebook-scene[data-lumen-node-border-style="dashed"]
+  .jp-LumenNotebookMindMap-cellNode {
+  border-style: dashed;
+}
+
+.jp-LumenMindMapNotebook-scene[data-lumen-node-border-style="dotted"]
+  .jp-LumenNotebookMindMap-cellNode {
+  border-style: dotted;
+}
+
+.jp-LumenNotebookMindMap-cellNode[data-lumen-heading-level="1"] {
+  --lumen-node-shadow: var(--jp-elevation-z2);
+  font-weight: 600;
+}
+
+.jp-LumenNotebookMindMap-cellNode[data-lumen-frame="code"] {
+  --lumen-node-background: var(--jp-layout-color1);
+}
+
+.jp-LumenNotebookMindMap-cellNode.is-selected {
+  border-color: var(--jp-brand-color1);
+  box-shadow:
+    0 0 0 2px var(--jp-brand-color1),
+    0 0 10px 3px var(--jp-brand-color2),
+    var(--lumen-node-shadow, var(--jp-elevation-z1));
+}
+
+.jp-LumenNotebookMindMap-dragHandle {
+  background: var(--jp-layout-color2);
+  border-radius: 4px 0 0 4px;
+  bottom: 0;
+  color: var(--jp-ui-font-color3);
+  cursor: grab;
+  left: 0;
+  position: absolute;
+  top: 0;
+  user-select: none;
+  width: 12px;
+}
+
+.jp-LumenNotebookMindMap-dragHandle::before {
+  content: "⋮⋮";
+  display: block;
+  font-size: 10px;
+  line-height: 1;
+  padding-top: 8px;
+  text-align: center;
+}
+
+.jp-LumenNotebookMindMap-cellNode.is-drop-before {
+  box-shadow: inset 0 3px 0 var(--jp-brand-color1);
+}
+
+.jp-LumenNotebookMindMap-cellNode.is-drop-inside {
+  box-shadow: inset 0 0 0 2px var(--jp-brand-color1);
+}
+
+.jp-LumenNotebookMindMap-cellNode.is-drop-after {
+  box-shadow: inset 0 -3px 0 var(--jp-brand-color1);
+}
+
+.jp-LumenNotebookMindMap-drag-ghost {
+  background: var(--jp-layout-color0);
+  border: 2px solid var(--jp-brand-color1);
+  border-radius: 8px;
+  box-shadow: var(--jp-elevation-z4);
+  color: var(--jp-ui-font-color1);
+  font-size: var(--jp-ui-font-size0);
+  max-width: 320px;
+  overflow: hidden;
+  padding: 8px 12px;
+  pointer-events: none;
+  position: fixed;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  z-index: 10000;
+}
+
+.jp-LumenNotebookMindMap-cellNode .jp-Cell {
+  margin: 0;
+  overflow: visible;
+}
+
+.jp-LumenNotebookMindMap-cellNode .jp-Collapser,
+.jp-LumenNotebookMindMap-cellNode .jp-InputArea-prompt,
+.jp-LumenNotebookMindMap-cellNode .jp-OutputArea-prompt {
+  display: none;
+}
+
+.jp-LumenNotebookMindMap-cellNode .jp-Cell-inputWrapper,
+.jp-LumenNotebookMindMap-cellNode .jp-InputArea {
+  margin-left: 0;
+  min-height: 3rem;
+  padding-left: 0;
+}
+
+.jp-LumenNotebookMindMap-cellNode .jp-CodeMirrorEditor,
+.jp-LumenNotebookMindMap-cellNode .cm-editor,
+.jp-LumenNotebookMindMap-cellNode .cm-scroller {
+  cursor: text;
+  min-height: 3rem;
+}
+
+.jp-LumenNotebookMindMap-cellNode.jp-mod-rendered .jp-MarkdownOutput,
+.jp-LumenNotebookMindMap-cellNode .jp-mod-rendered .jp-MarkdownOutput {
+  cursor: pointer;
+  padding: 2px 6px 2px 0;
 }

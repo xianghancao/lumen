@@ -4,9 +4,13 @@ build-backend = "hatchling.build"
 
 [project]
 name = "jupyterlab-lumen"
+description = "Jupyter-native notebook mind map view for JupyterLab"
 readme = "README.md"
 license = { file = "LICENSE" }
 requires-python = ">=3.9"
+authors = [
+  { name = "Lumen contributors" },
+]
 classifiers = [
     "Framework :: Jupyter",
     "Framework :: Jupyter :: JupyterLab",
@@ -16,13 +20,13 @@ classifiers = [
     "Programming Language :: Python :: 3",
 ]
 dependencies = []
-dynamic = ["version", "description", "authors", "urls"]
-
-[project.optional-dependencies]
-test = ["pytest>=7.0", "pytest-asyncio>=0.21"]
+dynamic = ["version"]
 
 [tool.hatch.version]
 path = "jupyterlab_lumen/_version.py"
+
+[project.optional-dependencies]
+test = ["pytest>=7.0", "pytest-asyncio>=0.21"]
 
 [tool.hatch.build.targets.wheel.shared-data]
 "jupyterlab_lumen/labextension" = "share/jupyter/labextensions/jupyterlab-lumen"
