@@ -3,10 +3,10 @@
 Jupyter-native **notebook mind map**: rearrange `.ipynb` cells on a spatial canvas by markdown heading hierarchy, using **Jupyter's own cell renderers** (CodeCell / MarkdownCell — not a custom rich-text editor).
 
 <p align="center">
-  <img src="docs/assets/lumen-ui-overview.svg" alt="Lumen mind map UI overview" width="720"/>
+  <img src="docs/assets/lumen-ui-overview.gif" alt="Lumen mind map UI overview" width="720"/>
 </p>
 
-> **Demo GIF:** A screen recording can be added at [`docs/assets/demo.gif`](docs/assets/demo.gif). Until then, open [`examples/example.ipynb`](examples/example.ipynb) in **Lumen Mind Map** for a hands-on tour.
+> **Demo:** The GIF above was recorded with [`examples/example.ipynb`](examples/example.ipynb) open in **Lumen Mind Map**.
 
 ## Version
 

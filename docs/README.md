@@ -4,8 +4,8 @@ Visual materials for the README and project pages.
 
 | File | Purpose |
 |------|---------|
-| [`lumen-ui-overview.svg`](./lumen-ui-overview.svg) | Wireframe of the Lumen UI (used in README) |
-| `demo.gif` | Optional screen recording — not included yet |
+| [`lumen-ui-overview.gif`](./lumen-ui-overview.gif) | Screen recording of the Lumen UI (used in README) |
+| `demo.gif` | Optional alternate demo — use `lumen-ui-overview.gif` unless replacing |
 
 ## Adding a demo GIF
 
