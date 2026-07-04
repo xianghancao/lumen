@@ -42,6 +42,10 @@ export type LayoutOptions = {
   /** Collapsed node ids — their descendants are omitted from layout. */
   collapsedIds?: ReadonlySet<string>;
   density?: LayoutDensity;
+  /** Boundary gap between sibling nodes (maps to dagre nodesep). */
+  siblingGap?: number;
+  /** Boundary gap between parent and child nodes (maps to dagre ranksep). */
+  childGap?: number;
   /** Measured node box sizes used by the layout engine. */
   nodeDimensions?: ReadonlyMap<string, { width: number; height: number }>;
 };

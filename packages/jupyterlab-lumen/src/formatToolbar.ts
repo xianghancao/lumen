@@ -1,22 +1,41 @@
+import type { IMarkdownCellModel } from "@jupyterlab/cells";
 import type { CodeEditor } from "@jupyterlab/codeeditor";
-import { MarkdownFormat } from "./markdownFormat";
+import {
+  applyOutlineHeading,
+  buildHtmlImageSnippet,
+  buildHtmlLinkSnippet,
+  getMetadataOutlineHeadingLevel,
+  MarkdownFormat,
+} from "./markdownFormat";
+import { getFormatState } from "./formatState";
 
 type EditorGetter = () => CodeEditor.IEditor | null | undefined;
 
 type FormatToolbarOptions = {
   getEditor: EditorGetter;
+  getActiveMarkdownCell: () => IMarkdownCellModel | null;
   isEnabled: () => boolean;
+  getDisabledReason?: () => string | null;
 };
 
 export type FormatToolbarHandle = {
   node: HTMLElement;
   syncEnabled: () => void;
+  syncActiveStates: () => void;
 };
 
 type MenuItem = {
   label: string;
+  previewLabel?: string;
   title?: string;
   action: (editor: CodeEditor.IEditor) => void;
+  previewClass?: string;
+  formatId?: string;
+};
+
+type StateTarget = {
+  formatId: string;
+  element: HTMLElement;
 };
 
 const COLOR_SWATCHES = [
@@ -31,6 +50,7 @@ const COLOR_SWATCHES = [
 const runOnEditor = (
   getEditor: EditorGetter,
   action: (editor: CodeEditor.IEditor) => void,
+  onComplete?: () => void,
 ): void => {
   const editor = getEditor();
 
@@ -39,6 +59,7 @@ const runOnEditor = (
   }
 
   action(editor);
+  onComplete?.();
 };
 
 const closeAllMenus = (root: HTMLElement): void => {
@@ -49,9 +70,117 @@ const closeAllMenus = (root: HTMLElement): void => {
 
 export const closeLumenDropdownMenus = closeAllMenus;
 
+export const appendDropdownSection = (
+  menu: HTMLElement,
+  label: string,
+): void => {
+  const section = document.createElement("div");
+  section.className = "jp-LumenFormatDropdown-section";
+  section.textContent = label;
+  menu.appendChild(section);
+};
+
+export const createDropdownOptionRow = (
+  menu: HTMLElement,
+  extraClassName = "",
+): HTMLElement => {
+  const row = document.createElement("div");
+  row.className = extraClassName
+    ? `jp-LumenFormatDropdown-optionRow ${extraClassName}`
+    : "jp-LumenFormatDropdown-optionRow";
+  menu.appendChild(row);
+  return row;
+};
+
+export const appendDropdownSectionRow = (
+  menu: HTMLElement,
+  label: string,
+  extraClassName = "",
+): HTMLElement => {
+  appendDropdownSection(menu, label);
+  return createDropdownOptionRow(menu, extraClassName);
+};
+
 const setButtonEnabled = (button: HTMLButtonElement, enabled: boolean): void => {
   button.disabled = !enabled;
   button.setAttribute("aria-disabled", String(!enabled));
+};
+
+const createMenuItemButton = (
+  getEditor: EditorGetter,
+  item: MenuItem,
+  root: HTMLElement,
+  stateTargets: StateTarget[],
+  onComplete: () => void,
+): HTMLButtonElement => {
+  const menuItem = document.createElement("button");
+  menuItem.type = "button";
+  menuItem.className = "jp-LumenFormatDropdown-item";
+  menuItem.setAttribute("role", "menuitem");
+  menuItem.title = item.title ?? item.label;
+
+  if (item.formatId) {
+    menuItem.dataset.formatId = item.formatId;
+    stateTargets.push({ formatId: item.formatId, element: menuItem });
+  }
+
+  if (item.previewLabel) {
+    const kind = document.createElement("span");
+    kind.className = "jp-LumenFormatDropdown-itemKind";
+    kind.textContent = item.label;
+    menuItem.appendChild(kind);
+  }
+
+  const preview = document.createElement("span");
+  preview.className = item.previewClass
+    ? `jp-LumenFormatDropdown-preview ${item.previewClass}`
+    : "jp-LumenFormatDropdown-preview";
+  preview.textContent = item.previewLabel ?? item.label;
+  menuItem.appendChild(preview);
+
+  menuItem.addEventListener("click", (event) => {
+    event.stopPropagation();
+    runOnEditor(getEditor, item.action, onComplete);
+  });
+
+  return menuItem;
+};
+
+const applyActiveStates = (
+  getEditor: EditorGetter,
+  getActiveMarkdownCell: () => IMarkdownCellModel | null,
+  stateTargets: StateTarget[],
+): void => {
+  const cell = getActiveMarkdownCell();
+  const state = getFormatState(
+    getEditor(),
+    cell ? getMetadataOutlineHeadingLevel(cell) : null,
+  );
+
+  stateTargets.forEach(({ formatId, element }) => {
+    let active = false;
+
+    if (formatId === "bold") active = state.bold;
+    else if (formatId === "italic") active = state.italic;
+    else if (formatId === "underline") active = state.underline;
+    else if (formatId === "strikethrough") active = state.strikethrough;
+    else if (formatId === "inlineCode") active = state.inlineCode;
+    else if (formatId === "highlight") active = state.highlight;
+    else if (formatId === "blockQuote") active = state.blockQuote;
+    else if (formatId.startsWith("heading")) {
+      active = state.headingLevel === Number(formatId.replace("heading", ""));
+    } else if (formatId === "list-bulleted") active = state.listType === "bulleted";
+    else if (formatId === "list-dashed") active = state.listType === "dashed";
+    else if (formatId === "list-numbered") active = state.listType === "numbered";
+    else if (formatId === "list-checklist") active = state.listType === "checklist";
+    else if (formatId.startsWith("color:")) {
+      active = state.color === formatId.slice("color:".length);
+    } else if (formatId === "color-default") {
+      active = state.color === null;
+    }
+
+    element.classList.toggle("is-active", active);
+  });
 };
 
 const createDropdown = (
@@ -61,6 +190,9 @@ const createDropdown = (
   items: MenuItem[],
   root: HTMLElement,
   registerControl: (button: HTMLButtonElement) => void,
+  stateTargets: StateTarget[],
+  onComplete: () => void,
+  menuClassName = "",
 ): HTMLElement => {
   const wrapper = document.createElement("div");
   wrapper.className = "jp-LumenFormatDropdown";
@@ -75,22 +207,15 @@ const createDropdown = (
   registerControl(button);
 
   const menu = document.createElement("div");
-  menu.className = "jp-LumenFormatDropdown-menu";
+  menu.className = ["jp-LumenFormatDropdown-menu", menuClassName]
+    .filter(Boolean)
+    .join(" ");
   menu.setAttribute("role", "menu");
 
   items.forEach((item) => {
-    const menuItem = document.createElement("button");
-    menuItem.type = "button";
-    menuItem.className = "jp-LumenFormatDropdown-item";
-    menuItem.setAttribute("role", "menuitem");
-    menuItem.textContent = item.label;
-    menuItem.title = item.title ?? item.label;
-    menuItem.addEventListener("click", (event) => {
-      event.stopPropagation();
-      runOnEditor(getEditor, item.action);
-      closeAllMenus(root);
-    });
-    menu.appendChild(menuItem);
+    menu.appendChild(
+      createMenuItemButton(getEditor, item, root, stateTargets, onComplete),
+    );
   });
 
   button.addEventListener("click", (event) => {
@@ -105,6 +230,7 @@ const createDropdown = (
 
     if (!isOpen) {
       menu.classList.add("is-open");
+      onComplete();
     }
   });
 
@@ -118,6 +244,8 @@ const createColorDropdown = (
   getEditor: EditorGetter,
   root: HTMLElement,
   registerControl: (button: HTMLButtonElement) => void,
+  stateTargets: StateTarget[],
+  onComplete: () => void,
 ): HTMLElement => {
   const wrapper = document.createElement("div");
   wrapper.className = "jp-LumenFormatDropdown";
@@ -136,25 +264,65 @@ const createColorDropdown = (
   menu.setAttribute("role", "menu");
 
   const textItems: MenuItem[] = [
-    { label: "Bold", action: MarkdownFormat.bold },
-    { label: "Italic", action: MarkdownFormat.italic },
-    { label: "Underline", action: MarkdownFormat.underline },
-    { label: "Strikethrough", action: MarkdownFormat.strikethrough },
-    { label: "Block Quote", action: MarkdownFormat.blockQuote },
+    {
+      label: "Bold",
+      formatId: "bold",
+      action: MarkdownFormat.bold,
+      previewClass: "jp-LumenFormatDropdown-preview-bold",
+    },
+    {
+      label: "Italic",
+      formatId: "italic",
+      action: MarkdownFormat.italic,
+      previewClass: "jp-LumenFormatDropdown-preview-italic",
+    },
+    {
+      label: "Underline",
+      formatId: "underline",
+      action: MarkdownFormat.underline,
+      previewClass: "jp-LumenFormatDropdown-preview-underline",
+    },
+    {
+      label: "Strikethrough",
+      formatId: "strikethrough",
+      action: MarkdownFormat.strikethrough,
+      previewClass: "jp-LumenFormatDropdown-preview-strikethrough",
+    },
+    {
+      label: "Inline code",
+      formatId: "inlineCode",
+      action: MarkdownFormat.inlineCode,
+      previewClass: "jp-LumenFormatDropdown-preview-code",
+    },
+    {
+      label: "Highlight",
+      formatId: "highlight",
+      action: MarkdownFormat.highlight,
+      previewClass: "jp-LumenFormatDropdown-preview-highlight",
+    },
+    {
+      label: "Block Quote",
+      formatId: "blockQuote",
+      action: MarkdownFormat.blockQuote,
+      previewClass: "jp-LumenFormatDropdown-preview-blockquote",
+    },
+    {
+      label: "Code block",
+      action: MarkdownFormat.codeBlock,
+      previewClass: "jp-LumenFormatDropdown-preview-codeblock",
+    },
+    {
+      label: "Clear formatting",
+      title: "Remove inline formatting from selection",
+      action: MarkdownFormat.clearFormatting,
+      previewClass: "jp-LumenFormatDropdown-preview-clear",
+    },
   ];
 
   textItems.forEach((item) => {
-    const menuItem = document.createElement("button");
-    menuItem.type = "button";
-    menuItem.className = "jp-LumenFormatDropdown-item";
-    menuItem.setAttribute("role", "menuitem");
-    menuItem.textContent = item.label;
-    menuItem.addEventListener("click", (event) => {
-      event.stopPropagation();
-      runOnEditor(getEditor, item.action);
-      closeAllMenus(root);
-    });
-    menu.appendChild(menuItem);
+    menu.appendChild(
+      createMenuItemButton(getEditor, item, root, stateTargets, onComplete),
+    );
   });
 
   const colorLabel = document.createElement("div");
@@ -162,25 +330,78 @@ const createColorDropdown = (
   colorLabel.textContent = "Font color";
   menu.appendChild(colorLabel);
 
+  const defaultColorButton = document.createElement("button");
+  defaultColorButton.type = "button";
+  defaultColorButton.className =
+    "jp-LumenFormatDropdown-item jp-LumenFormatColorDefault";
+  defaultColorButton.dataset.formatId = "color-default";
+  defaultColorButton.textContent = "Default";
+  defaultColorButton.title = "Remove font color";
+  stateTargets.push({
+    formatId: "color-default",
+    element: defaultColorButton,
+  });
+  defaultColorButton.addEventListener("click", (event) => {
+    event.stopPropagation();
+    runOnEditor(getEditor, MarkdownFormat.clearColor, onComplete);
+  });
+  menu.appendChild(defaultColorButton);
+
   const swatches = document.createElement("div");
   swatches.className = "jp-LumenFormatColorSwatches";
 
   COLOR_SWATCHES.forEach(({ label, color }) => {
-    const swatch = document.createElement("button");
-    swatch.type = "button";
+    const swatchRow = document.createElement("button");
+    swatchRow.type = "button";
+    swatchRow.className = "jp-LumenFormatColorSwatchRow";
+    swatchRow.dataset.formatId = `color:${color}`;
+    swatchRow.title = label;
+    swatchRow.setAttribute("aria-label", label);
+    stateTargets.push({ formatId: `color:${color}`, element: swatchRow });
+
+    const swatch = document.createElement("span");
     swatch.className = "jp-LumenFormatColorSwatch";
-    swatch.title = label;
-    swatch.setAttribute("aria-label", label);
     swatch.style.backgroundColor = color;
-    swatch.addEventListener("click", (event) => {
+
+    const swatchLabel = document.createElement("span");
+    swatchLabel.className = "jp-LumenFormatColorSwatchLabel";
+    swatchLabel.textContent = label;
+
+    swatchRow.append(swatch, swatchLabel);
+    swatchRow.addEventListener("click", (event) => {
       event.stopPropagation();
-      runOnEditor(getEditor, (editor) => MarkdownFormat.color(editor, color));
-      closeAllMenus(root);
+      runOnEditor(getEditor, (editor) => MarkdownFormat.color(editor, color), onComplete);
     });
-    swatches.appendChild(swatch);
+    swatches.appendChild(swatchRow);
   });
 
   menu.appendChild(swatches);
+
+  const customRow = document.createElement("div");
+  customRow.className = "jp-LumenFormatColorCustom";
+
+  const customLabel = document.createElement("label");
+  customLabel.className = "jp-LumenFormatColorCustom-label";
+  customLabel.textContent = "Custom";
+  customLabel.setAttribute("for", "jp-LumenFormatColorCustom-input");
+
+  const customInput = document.createElement("input");
+  customInput.type = "color";
+  customInput.id = "jp-LumenFormatColorCustom-input";
+  customInput.className = "jp-LumenFormatColorCustom-input";
+  customInput.value = "#1976d2";
+  customInput.title = "Choose a custom font color";
+  customInput.addEventListener("click", (event) => {
+    event.stopPropagation();
+  });
+  customInput.addEventListener("input", (event) => {
+    event.stopPropagation();
+    const color = customInput.value;
+    runOnEditor(getEditor, (editor) => MarkdownFormat.color(editor, color), onComplete);
+  });
+
+  customRow.append(customLabel, customInput);
+  menu.appendChild(customRow);
 
   button.addEventListener("click", (event) => {
     event.stopPropagation();
@@ -194,6 +415,7 @@ const createColorDropdown = (
 
     if (!isOpen) {
       menu.classList.add("is-open");
+      onComplete();
     }
   });
 
@@ -203,34 +425,133 @@ const createColorDropdown = (
   return wrapper;
 };
 
-const createActionButton = (
+const TABLE_GRID_MAX_ROWS = 8;
+const TABLE_GRID_MAX_COLS = 8;
+
+const createTableDropdown = (
   getEditor: EditorGetter,
-  label: string,
-  title: string,
-  action: (editor: CodeEditor.IEditor) => void,
+  root: HTMLElement,
   registerControl: (button: HTMLButtonElement) => void,
-): HTMLButtonElement => {
+): HTMLElement => {
+  const wrapper = document.createElement("div");
+  wrapper.className = "jp-LumenFormatDropdown";
+
   const button = document.createElement("button");
   button.type = "button";
   button.className = "jp-LumenNotebookMindMap-format-btn";
-  button.title = title;
-  button.setAttribute("aria-label", title);
-  button.textContent = label;
+  button.title = "Insert table";
+  button.setAttribute("aria-label", "Insert table");
+  button.setAttribute("aria-haspopup", "menu");
+  button.textContent = "Table";
   registerControl(button);
-  button.addEventListener("click", () => {
+
+  const menu = document.createElement("div");
+  menu.className =
+    "jp-LumenFormatDropdown-menu jp-LumenFormatDropdown-menu-table";
+  menu.setAttribute("role", "menu");
+  menu.setAttribute("aria-label", "Table size");
+
+  const label = document.createElement("div");
+  label.className = "jp-LumenFormatTablePicker-label";
+  label.textContent = "Insert table";
+
+  const grid = document.createElement("div");
+  grid.className = "jp-LumenFormatTablePicker-grid";
+  grid.setAttribute("role", "group");
+  grid.setAttribute("aria-label", "Choose table size");
+
+  const updateHighlight = (rows: number, cols: number): void => {
+    grid.querySelectorAll(".jp-LumenFormatTablePicker-cell").forEach((cell) => {
+      const element = cell as HTMLElement;
+      const row = Number(element.dataset.row);
+      const col = Number(element.dataset.col);
+      element.classList.toggle(
+        "is-highlighted",
+        row <= rows && col <= cols,
+      );
+    });
+  };
+
+  const resetHighlight = (): void => {
+    label.textContent = "Insert table";
+    updateHighlight(0, 0);
+  };
+
+  for (let row = 1; row <= TABLE_GRID_MAX_ROWS; row += 1) {
+    for (let col = 1; col <= TABLE_GRID_MAX_COLS; col += 1) {
+      const cell = document.createElement("button");
+      cell.type = "button";
+      cell.className = "jp-LumenFormatTablePicker-cell";
+      cell.dataset.row = String(row);
+      cell.dataset.col = String(col);
+      cell.title = `${row} × ${col} table`;
+      cell.setAttribute("aria-label", `${row} by ${col} table`);
+
+      cell.addEventListener("mouseenter", () => {
+        label.textContent = `${row} × ${col}`;
+        updateHighlight(row, col);
+      });
+
+      cell.addEventListener("click", (event) => {
+        event.stopPropagation();
+        runOnEditor(getEditor, (editor) => MarkdownFormat.table(editor, row, col));
+      });
+
+      grid.appendChild(cell);
+    }
+  }
+
+  grid.addEventListener("mouseleave", resetHighlight);
+
+  menu.appendChild(label);
+  menu.appendChild(grid);
+
+  button.addEventListener("click", (event) => {
+    event.stopPropagation();
+
     if (button.disabled) {
       return;
     }
 
-    runOnEditor(getEditor, action);
+    const isOpen = menu.classList.contains("is-open");
+    closeAllMenus(root);
+
+    if (!isOpen) {
+      menu.classList.add("is-open");
+      resetHighlight();
+    }
   });
 
-  return button;
+  wrapper.appendChild(button);
+  wrapper.appendChild(menu);
+
+  return wrapper;
 };
+
+const headingItem = (
+  getActiveMarkdownCell: () => IMarkdownCellModel | null,
+  level: number,
+): MenuItem => ({
+  label: `Heading ${level} (outline)`,
+  title: `Set outline heading level ${level}`,
+  formatId: `heading${level}`,
+  action: (editor) => {
+    const cell = getActiveMarkdownCell();
+
+    if (!cell) {
+      return;
+    }
+
+    applyOutlineHeading(editor, cell, level);
+  },
+  previewClass: `jp-LumenFormatDropdown-preview-heading${Math.min(level, 6)}`,
+});
 
 export const createFormatToolbar = ({
   getEditor,
+  getActiveMarkdownCell,
   isEnabled,
+  getDisabledReason,
 }: FormatToolbarOptions): FormatToolbarHandle => {
   const toolbar = document.createElement("div");
   toolbar.className = "jp-LumenNotebookMindMap-format-toolbar";
@@ -238,15 +559,29 @@ export const createFormatToolbar = ({
   toolbar.setAttribute("aria-label", "Markdown formatting");
 
   const controls: HTMLButtonElement[] = [];
+  const stateTargets: StateTarget[] = [];
+
   const registerControl = (button: HTMLButtonElement) => {
     controls.push(button);
   };
 
+  const syncActiveStates = () => {
+    applyActiveStates(getEditor, getActiveMarkdownCell, stateTargets);
+  };
+
+  const onFormatAction = () => {
+    syncActiveStates();
+  };
+
   const syncEnabled = () => {
     const enabled = isEnabled();
+    const reason = getDisabledReason?.();
 
     controls.forEach((button) => {
       setButtonEnabled(button, enabled);
+      button.title = enabled
+        ? button.getAttribute("data-enabled-title") ?? button.title
+        : reason ?? "Formatting is available in markdown edit mode";
     });
 
     if (!enabled) {
@@ -258,20 +593,23 @@ export const createFormatToolbar = ({
     closeAllMenus(toolbar);
   });
 
-  toolbar.appendChild(createColorDropdown(getEditor, toolbar, registerControl));
+  toolbar.appendChild(
+    createColorDropdown(getEditor, toolbar, registerControl, stateTargets, onFormatAction),
+  );
 
   toolbar.appendChild(
     createDropdown(
       getEditor,
       "Title",
-      "Heading level",
-      [
-        { label: "Heading 1", action: MarkdownFormat.heading1 },
-        { label: "Heading 2", action: MarkdownFormat.heading2 },
-        { label: "Heading 3", action: MarkdownFormat.heading3 },
-      ],
+      "Outline heading level (changes mind map structure)",
+      [1, 2, 3, 4, 5, 6].map((level) =>
+        headingItem(getActiveMarkdownCell, level),
+      ),
       toolbar,
       registerControl,
+      stateTargets,
+      onFormatAction,
+      "jp-LumenFormatDropdown-menu-wide",
     ),
   );
 
@@ -281,45 +619,102 @@ export const createFormatToolbar = ({
       "List",
       "List style",
       [
-        { label: "Bulleted list", action: MarkdownFormat.bulletedList },
-        { label: "Dashed list", action: MarkdownFormat.dashedList },
-        { label: "Numbered list", action: MarkdownFormat.numberedList },
-        { label: "Check list", action: MarkdownFormat.checkList },
+        {
+          label: "Bulleted list",
+          formatId: "list-bulleted",
+          action: MarkdownFormat.bulletedList,
+          previewClass: "jp-LumenFormatDropdown-preview-bulleted",
+        },
+        {
+          label: "Dashed list",
+          formatId: "list-dashed",
+          action: MarkdownFormat.dashedList,
+          previewClass: "jp-LumenFormatDropdown-preview-dashed",
+        },
+        {
+          label: "Numbered list",
+          formatId: "list-numbered",
+          action: MarkdownFormat.numberedList,
+          previewClass: "jp-LumenFormatDropdown-preview-numbered",
+        },
+        {
+          label: "Check list",
+          formatId: "list-checklist",
+          action: MarkdownFormat.checkList,
+          previewClass: "jp-LumenFormatDropdown-preview-checklist",
+        },
       ],
       toolbar,
       registerControl,
+      stateTargets,
+      onFormatAction,
     ),
   );
 
+  toolbar.appendChild(createTableDropdown(getEditor, toolbar, registerControl));
   toolbar.appendChild(
-    createActionButton(
-      getEditor,
-      "Table",
-      "Insert table",
-      MarkdownFormat.table,
-      registerControl,
-    ),
-  );
-  toolbar.appendChild(
-    createActionButton(
+    createDropdown(
       getEditor,
       "Image",
       "Insert image",
-      MarkdownFormat.image,
+      [
+        {
+          label: "Markdown",
+          previewLabel: "![image](https://)",
+          title: "Insert image using Markdown syntax",
+          previewClass: "jp-LumenFormatDropdown-preview-syntax",
+          action: MarkdownFormat.imageMarkdown,
+        },
+        {
+          label: "HTML",
+          previewLabel: buildHtmlImageSnippet("image"),
+          title: "Insert image using HTML syntax",
+          previewClass: "jp-LumenFormatDropdown-preview-syntax",
+          action: MarkdownFormat.imageHtml,
+        },
+      ],
+      toolbar,
       registerControl,
+      stateTargets,
+      onFormatAction,
+      "jp-LumenFormatDropdown-menu-wide",
     ),
   );
   toolbar.appendChild(
-    createActionButton(
+    createDropdown(
       getEditor,
       "Link",
       "Insert link",
-      MarkdownFormat.link,
+      [
+        {
+          label: "Markdown",
+          previewLabel: "[link](https://)",
+          title: "Insert link using Markdown syntax",
+          previewClass: "jp-LumenFormatDropdown-preview-syntax",
+          action: MarkdownFormat.linkMarkdown,
+        },
+        {
+          label: "HTML",
+          previewLabel: buildHtmlLinkSnippet("link"),
+          title: "Insert link using HTML syntax",
+          previewClass: "jp-LumenFormatDropdown-preview-syntax",
+          action: MarkdownFormat.linkHtml,
+        },
+      ],
+      toolbar,
       registerControl,
+      stateTargets,
+      onFormatAction,
+      "jp-LumenFormatDropdown-menu-wide",
     ),
   );
 
-  syncEnabled();
+  controls.forEach((button) => {
+    button.setAttribute("data-enabled-title", button.title);
+  });
 
-  return { node: toolbar, syncEnabled };
+  syncEnabled();
+  syncActiveStates();
+
+  return { node: toolbar, syncEnabled, syncActiveStates };
 };

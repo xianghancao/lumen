@@ -14,13 +14,14 @@ import type { CellList } from "@jupyterlab/notebook/lib/celllist";
 import type { IRenderMimeRegistry } from "@jupyterlab/rendermime";
 import type { IObservableList } from "@jupyterlab/observables";
 import { Message } from "@lumino/messaging";
-import { Widget } from "@lumino/widgets";
+import { PanelLayout, Widget } from "@lumino/widgets";
 import { CommandToolbarButton, collapseIcon, expandIcon } from "@jupyterlab/ui-components";
 import {
   buildNotebookOutline,
   buildMindMapEdgePath,
   collectOutlineEdges,
   DEFAULT_NODE_LAYOUT_SIZE,
+  getLayoutGapsForDensity,
   getVisibleOutlineNodeIds,
   layoutOutlineTree,
   moveOutlineNode,
@@ -35,6 +36,8 @@ import {
 } from "lumen-kernel";
 import { applyOutlineToNotebook } from "./notebookSync";
 import { createFormatToolbar, closeLumenDropdownMenus, type FormatToolbarHandle } from "./formatToolbar";
+import { handleFormatShortcut } from "./formatKeyboard";
+import { isMindMapEditingText } from "./mindMapKeyboard";
 import {
   applyAppearanceToScene,
   createAppearanceToolbar,
@@ -43,9 +46,18 @@ import {
 } from "./appearanceToolbar";
 import { createLayoutToolbar } from "./layoutToolbar";
 import {
+  applyFontToScene,
+  createFontToolbar,
+  DEFAULT_MIND_MAP_FONT,
+  DEFAULT_MIND_MAP_FONT_SIZE,
+  type MindMapFont,
+  type MindMapFontSize,
+} from "./fontToolbar";
+import {
   applyBackgroundToViewport,
   createBackgroundToolbar,
   DEFAULT_MIND_MAP_BACKGROUND,
+  DEFAULT_MIND_MAP_BACKGROUND_COLOR,
   type MindMapBackground,
 } from "./backgroundToolbar";
 import {
@@ -57,19 +69,21 @@ import {
 import { createProductMenu } from "./productMenu";
 import { createGuideToolbar, closeGuideMenu } from "./keyboardGuide";
 import { handleMindMapShortcut } from "./mindMapKeyboard";
+import {
+  MindMapSettingsManager,
+  type MindMapUserSettings,
+} from "./mindMapSettings";
+import { createLumenTranslator, type LumenTranslator } from "./lumenI18n";
+import type { ITranslator } from "@jupyterlab/translation";
 
 export const LUMEN_ADD_MINDMAP_COMMAND = "jupyterlab-lumen:add-mindmap";
 
-const TREE_DIRECTIONS: Array<{
-  value: TreeDirection;
-  label: string;
-  title: string;
-}> = [
-  { value: "TB", label: "↓", title: "Top to bottom" },
-  { value: "BT", label: "↑", title: "Bottom to top" },
-  { value: "LR", label: "→", title: "Left to right" },
-  { value: "RL", label: "←", title: "Right to left" },
-];
+const TREE_DIRECTION_LABELS: Record<TreeDirection, string> = {
+  TB: "↓",
+  BT: "↑",
+  LR: "→",
+  RL: "←",
+};
 
 const DRAG_THRESHOLD_PX = 6;
 const ZOOM_PRESETS = [0.1, 0.3, 0.5, 0.7, 0.9, 1.0, 1.1, 1.3, 1.5, 1.7, 2.0] as const;
@@ -151,6 +165,8 @@ export class NotebookMindMapWidget extends Widget {
   private _directionMenuItems = new Map<TreeDirection, HTMLButtonElement>();
   private _treeDirection: TreeDirection = "LR";
   private _layoutDensity: LayoutDensity = "normal";
+  private _siblingGap = 22;
+  private _childGap = 52;
   private _collapsedNodes = new Set<string>();
   private _applyingNotebookChange = false;
   private _dragState: {
@@ -169,6 +185,7 @@ export class NotebookMindMapWidget extends Widget {
   private _isPanning = false;
   private _panPointerId: number | null = null;
   private _panStart = { x: 0, y: 0, panX: 0, panY: 0 };
+  private _revealCellInNotebook: ((cellIndex: number) => void) | null = null;
   private _notebookAttached = false;
   private _contentChangeTimer: number | null = null;
   private _statusNodeEl: HTMLElement;
@@ -176,11 +193,17 @@ export class NotebookMindMapWidget extends Widget {
   private _zoomMenu: HTMLElement | null = null;
   private _zoomMenuItems = new Map<number, HTMLButtonElement>();
   private _fullscreenButton: HTMLButtonElement | null = null;
+  private _fullscreenShell: Widget | null = null;
+  private _fullscreenRestoreParent: Widget | null = null;
+  private _fullscreenRestoreIndex = -1;
   private _formatToolbar: FormatToolbarHandle | null = null;
   private _addMindMapButton: CommandToolbarButton | null = null;
   private _appearanceSettings: AppearanceSettings = { ...DEFAULT_APPEARANCE };
   private _mindMapTheme: MindMapTheme = DEFAULT_MIND_MAP_THEME;
   private _mindMapBackground: MindMapBackground = DEFAULT_MIND_MAP_BACKGROUND;
+  private _mindMapBackgroundColor = DEFAULT_MIND_MAP_BACKGROUND_COLOR;
+  private _mindMapFont: MindMapFont = DEFAULT_MIND_MAP_FONT;
+  private _mindMapFontSize: MindMapFontSize = DEFAULT_MIND_MAP_FONT_SIZE;
   private _layoutGeneration = 0;
   private _layoutFrame: number | null = null;
   private _lastLayoutDimensions = new Map<
@@ -195,6 +218,10 @@ export class NotebookMindMapWidget extends Widget {
   private _resizeObserver: ResizeObserver | null = null;
   private _resizeLayoutTimer: number | null = null;
   private _pendingFocusCellIndex: number | null = null;
+  private _pendingEditCellIndex: number | null = null;
+  private _t: LumenTranslator;
+  private _settingsManager: MindMapSettingsManager;
+  private _settingsConn: { disconnect: () => void } | null = null;
 
   constructor(
     private _context: DocumentRegistry.IContext<INotebookModel>,
@@ -202,8 +229,12 @@ export class NotebookMindMapWidget extends Widget {
     private _contentFactory: NotebookPanel.IContentFactory,
     private _mimeTypeService: IEditorMimeTypeService,
     private _commands: CommandRegistry,
+    settingsManager: MindMapSettingsManager,
+    translator: ITranslator,
   ) {
     super();
+    this._settingsManager = settingsManager;
+    this._t = createLumenTranslator(translator.load("jupyterlab"));
     this.addClass("jp-LumenNotebookMindMap");
     this.title.label = this._context.path.split("/").pop() ?? "Notebook";
     this.title.closable = true;
@@ -220,16 +251,30 @@ export class NotebookMindMapWidget extends Widget {
     });
     headerLeft.appendChild(this._addMindMapButton.node);
 
-    headerLeft.appendChild(createProductMenu(this.node));
+    headerLeft.appendChild(createProductMenu(this.node, this._t));
     headerLeft.appendChild(this._createDirectionToolbar());
     headerLeft.appendChild(
       createStyleToolbar(
         this.node,
         () => this._mindMapTheme,
         (theme) => {
-          this._mindMapTheme = theme;
-          this._applyTheme();
+          void this._settingsManager.update({ theme });
         },
+        this._t,
+      ),
+    );
+    headerLeft.appendChild(
+      createFontToolbar(
+        this.node,
+        () => this._mindMapFont,
+        (font) => {
+          void this._settingsManager.update({ font });
+        },
+        () => this._mindMapFontSize,
+        (fontSize) => {
+          void this._settingsManager.update({ fontSize });
+        },
+        this._t,
       ),
     );
     headerLeft.appendChild(
@@ -237,31 +282,50 @@ export class NotebookMindMapWidget extends Widget {
         this.node,
         () => this._appearanceSettings,
         (settings) => {
-          this._appearanceSettings = settings;
-          this._applyScenePresentation();
+          void this._settingsManager.update({ appearance: settings });
         },
+        this._t,
       ),
     );
     headerLeft.appendChild(
       createLayoutToolbar(
         this.node,
-        () => this._layoutDensity,
+        () => ({
+          density: this._layoutDensity,
+          siblingGap: this._siblingGap,
+          childGap: this._childGap,
+        }),
         (density) => {
-          this._setLayoutDensity(density);
+          const gaps = getLayoutGapsForDensity(density);
+          void this._settingsManager.update({
+            layoutDensity: density,
+            siblingGap: gaps.siblingGap,
+            childGap: gaps.childGap,
+          });
         },
+        (gaps) => {
+          void this._settingsManager.update(gaps);
+        },
+        this._t,
       ),
     );
     headerLeft.appendChild(
       createBackgroundToolbar(
         this.node,
-        () => this._mindMapBackground,
-        (background) => {
-          this._mindMapBackground = background;
-          this._applyBackground();
+        () => ({
+          background: this._mindMapBackground,
+          backgroundColor: this._mindMapBackgroundColor,
+        }),
+        (state) => {
+          void this._settingsManager.update({
+            background: state.background,
+            backgroundColor: state.backgroundColor,
+          });
         },
+        this._t,
       ),
     );
-    headerLeft.appendChild(createGuideToolbar());
+    headerLeft.appendChild(createGuideToolbar(this._t));
     header.appendChild(headerLeft);
 
     const headerRight = document.createElement("div");
@@ -324,6 +388,28 @@ export class NotebookMindMapWidget extends Widget {
 
     this._context.model.cells.changed.connect(this._onCellsChanged, this);
     this._context.model.contentChanged.connect(this._onModelContentChanged, this);
+
+    this._applyUserSettings(this._settingsManager.settings);
+    this._settingsConn = this._settingsManager.changed.connect((settings) => {
+      this._applyUserSettings(settings);
+    });
+  }
+
+  private _applyUserSettings(settings: MindMapUserSettings): void {
+    this._mindMapTheme = settings.theme;
+    this._mindMapFont = settings.font;
+    this._mindMapFontSize = settings.fontSize;
+    this._layoutDensity = settings.layoutDensity;
+    this._siblingGap = settings.siblingGap;
+    this._childGap = settings.childGap;
+    this._treeDirection = settings.treeDirection;
+    this._mindMapBackground = settings.background;
+    this._mindMapBackgroundColor = settings.backgroundColor;
+    this._appearanceSettings = { ...settings.appearance };
+    this._updateDirectionButtons();
+    this._applyScenePresentation();
+    this._applyBackground();
+    this._applyLayout();
   }
 
   private _onModelContentChanged(): void {
@@ -360,6 +446,10 @@ export class NotebookMindMapWidget extends Widget {
 
   get notebook(): Notebook {
     return this._notebook;
+  }
+
+  bindRevealCellInNotebook(handler: (cellIndex: number) => void): void {
+    this._revealCellInNotebook = handler;
   }
 
   protected onAfterAttach(msg: Message): void {
@@ -433,6 +523,12 @@ export class NotebookMindMapWidget extends Widget {
     this._resizeObserver?.disconnect();
     this._resizeObserver = null;
     document.removeEventListener("fullscreenchange", this._onFullscreenChange);
+    void document.exitFullscreen().catch(() => undefined);
+    this._restoreDocumentFromFullscreen();
+    if (this._fullscreenShell && !this._fullscreenShell.isDisposed) {
+      this._fullscreenShell.dispose();
+      this._fullscreenShell = null;
+    }
     this._unbindViewportEvents();
     this._unbindCellInteractionEvents();
     this._unbindKeyboardEvents();
@@ -444,6 +540,8 @@ export class NotebookMindMapWidget extends Widget {
 
     this._addMindMapButton?.dispose();
     this._addMindMapButton = null;
+    this._settingsConn?.disconnect();
+    this._settingsConn = null;
     this._notebook.dispose();
     super.dispose();
   }
@@ -488,16 +586,18 @@ export class NotebookMindMapWidget extends Widget {
     trigger.className =
       "jp-LumenNotebookMindMap-direction-btn jp-LumenDirectionDropdown-trigger";
     trigger.setAttribute("aria-haspopup", "menu");
-    trigger.setAttribute("aria-label", "Tree direction");
+    trigger.setAttribute("aria-label", this._t.tree());
     this._directionTrigger = trigger;
 
     const menu = document.createElement("div");
     menu.className = "jp-LumenFormatDropdown-menu";
     menu.setAttribute("role", "menu");
-    menu.setAttribute("aria-label", "Tree direction");
+    menu.setAttribute("aria-label", this._t.tree());
     this._directionMenu = menu;
 
-    TREE_DIRECTIONS.forEach(({ value, label, title: optionTitle }) => {
+    (Object.keys(TREE_DIRECTION_LABELS) as TreeDirection[]).forEach((value) => {
+      const label = TREE_DIRECTION_LABELS[value];
+      const optionTitle = this._getTreeDirectionTitle(value);
       const item = document.createElement("button");
       item.type = "button";
       item.className = "jp-LumenFormatDropdown-item jp-LumenDirectionDropdown-item";
@@ -507,8 +607,7 @@ export class NotebookMindMapWidget extends Widget {
       item.textContent = label;
       item.addEventListener("click", (event) => {
         event.stopPropagation();
-        this._setTreeDirection(value);
-        this._closeDirectionMenu();
+        void this._settingsManager.update({ treeDirection: value });
       });
       this._directionMenuItems.set(value, item);
       menu.appendChild(item);
@@ -540,20 +639,45 @@ export class NotebookMindMapWidget extends Widget {
   private _createFormatToolbar(): HTMLElement {
     this._formatToolbar = createFormatToolbar({
       getEditor: () => this._notebook.activeCell?.editor ?? null,
+      getActiveMarkdownCell: () => {
+        const cell = this._notebook.activeCell;
+
+        return cell instanceof MarkdownCell ? cell.model : null;
+      },
       isEnabled: () => this._isFormatToolbarEnabled(),
+      getDisabledReason: () => this._getFormatToolbarDisabledReason(),
     });
 
     return this._formatToolbar.node;
   }
 
   private _isFormatToolbarEnabled(): boolean {
+    const cell = this._notebook.activeCell;
+
     return (
-      this._notebook.mode === "edit" && this._notebook.activeCellIndex >= 0
+      this._notebook.mode === "edit" &&
+      this._notebook.activeCellIndex >= 0 &&
+      cell instanceof MarkdownCell
     );
+  }
+
+  private _getFormatToolbarDisabledReason(): string | null {
+    const cell = this._notebook.activeCell;
+
+    if (this._notebook.mode !== "edit" || this._notebook.activeCellIndex < 0) {
+      return this._t.editModeHint();
+    }
+
+    if (cell instanceof CodeCell) {
+      return this._t.formatNotesCodeCell();
+    }
+
+    return null;
   }
 
   private _updateFormatToolbar(): void {
     this._formatToolbar?.syncEnabled();
+    this._formatToolbar?.syncActiveStates();
   }
 
   private _closeDirectionMenu(): void {
@@ -569,14 +693,14 @@ export class NotebookMindMapWidget extends Widget {
     trigger.type = "button";
     trigger.className = "jp-LumenNotebookMindMap-status-zoom-btn";
     trigger.setAttribute("aria-haspopup", "menu");
-    trigger.setAttribute("aria-label", "Zoom");
+    trigger.setAttribute("aria-label", this._t.zoom());
     this._zoomTrigger = trigger;
 
     const menu = document.createElement("div");
     menu.className =
       "jp-LumenFormatDropdown-menu jp-LumenZoomDropdown-menu";
     menu.setAttribute("role", "menu");
-    menu.setAttribute("aria-label", "Zoom");
+    menu.setAttribute("aria-label", this._t.zoom());
     this._zoomMenu = menu;
 
     ZOOM_PRESETS.forEach((preset) => {
@@ -590,7 +714,6 @@ export class NotebookMindMapWidget extends Widget {
       item.addEventListener("click", (event) => {
         event.stopPropagation();
         this._setZoomLevel(preset);
-        this._closeZoomMenu();
       });
       this._zoomMenuItems.set(preset, item);
       menu.appendChild(item);
@@ -647,12 +770,104 @@ export class NotebookMindMapWidget extends Widget {
     return wrapper;
   }
 
+  private _getDocumentWidget(): NotebookMindMapDocumentWidget | null {
+    let widget: Widget | null = this.parent;
+
+    while (widget) {
+      if (widget instanceof NotebookMindMapDocumentWidget) {
+        return widget;
+      }
+
+      widget = widget.parent;
+    }
+
+    return null;
+  }
+
+  private _getFullscreenShell(): Widget {
+    if (!this._fullscreenShell || this._fullscreenShell.isDisposed) {
+      const shell = new Widget();
+      shell.addClass("jp-LumenFullscreenShell");
+      shell.layout = new PanelLayout();
+      shell.hide();
+      Widget.attach(shell, document.body);
+      this._fullscreenShell = shell;
+    }
+
+    return this._fullscreenShell;
+  }
+
+  private _restoreDocumentFromFullscreen(): void {
+    const doc = this._getDocumentWidget();
+    const restoreParent = this._fullscreenRestoreParent;
+    const restoreIndex = this._fullscreenRestoreIndex;
+    const shell = this._fullscreenShell;
+
+    if (!doc || !restoreParent || !shell || doc.parent !== shell) {
+      return;
+    }
+
+    Widget.detach(doc);
+
+    const layout = restoreParent.layout as PanelLayout | null;
+
+    if (layout) {
+      if (restoreIndex >= 0 && restoreIndex <= layout.widgets.length) {
+        layout.insertWidget(restoreIndex, doc);
+      } else {
+        layout.addWidget(doc);
+      }
+    }
+
+    this._fullscreenRestoreParent = null;
+    this._fullscreenRestoreIndex = -1;
+    shell.hide();
+  }
+
   private _onFullscreenChange = (): void => {
+    if (!document.fullscreenElement) {
+      this._restoreDocumentFromFullscreen();
+    }
+
     this._updateFullscreenButton();
+    this._syncFullscreenLayout();
+  };
+
+  private _syncFullscreenLayout(): void {
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        if (this.isDisposed) {
+          return;
+        }
+
+        let widget: Widget | null = this;
+
+        while (widget) {
+          widget.update();
+          widget = widget.parent;
+        }
+
+        const shell = this._fullscreenShell;
+
+        if (shell && document.fullscreenElement === shell.node) {
+          shell.update();
+        }
+
+        this._applyLayout();
+
+        const index = this._notebook.activeCellIndex;
+
+        if (index >= 0) {
+          this._ensureCellVisibleInViewport(index);
+        }
+      });
+    });
   };
 
   private _isFullscreen(): boolean {
-    return document.fullscreenElement === this.node;
+    const shell = this._fullscreenShell;
+
+    return Boolean(shell && document.fullscreenElement === shell.node);
   }
 
   private _updateFullscreenButton(): void {
@@ -661,7 +876,7 @@ export class NotebookMindMapWidget extends Widget {
     }
 
     const isFullscreen = this._isFullscreen();
-    const label = isFullscreen ? "Exit fullscreen" : "Enter fullscreen";
+    const label = isFullscreen ? this._t.exitFullscreen() : this._t.enterFullscreen();
 
     this._fullscreenButton.title = label;
     this._fullscreenButton.setAttribute("aria-label", label);
@@ -670,15 +885,35 @@ export class NotebookMindMapWidget extends Widget {
   }
 
   private async _toggleFullscreen(): Promise<void> {
+    const doc = this._getDocumentWidget();
+
+    if (!doc) {
+      return;
+    }
+
+    const shell = this._getFullscreenShell();
+
     try {
       if (this._isFullscreen()) {
         await document.exitFullscreen();
         return;
       }
 
-      await this.node.requestFullscreen();
+      if (doc.parent && doc.parent !== shell) {
+        const parent = doc.parent;
+        const parentLayout = parent.layout as PanelLayout | null;
+        this._fullscreenRestoreParent = parent;
+        this._fullscreenRestoreIndex = parentLayout
+          ? parentLayout.widgets.indexOf(doc)
+          : -1;
+        Widget.detach(doc);
+        (shell.layout as PanelLayout).addWidget(doc);
+      }
+
+      shell.show();
+      await shell.node.requestFullscreen();
     } catch {
-      // Browser blocked fullscreen or API unavailable.
+      this._restoreDocumentFromFullscreen();
     }
   }
 
@@ -709,13 +944,22 @@ export class NotebookMindMapWidget extends Widget {
     applyThemeToScene(this._scene, this._mindMapTheme);
   }
 
+  private _applyFont(): void {
+    applyFontToScene(this._scene, this._mindMapFont, this._mindMapFontSize);
+  }
+
   private _applyBackground(): void {
-    applyBackgroundToViewport(this._viewport, this._mindMapBackground);
+    applyBackgroundToViewport(
+      this._viewport,
+      this._mindMapBackground,
+      this._mindMapBackgroundColor,
+    );
   }
 
   private _applyScenePresentation(): void {
     this._applyTheme();
     this._applyAppearance();
+    this._applyFont();
   }
 
   private _updateZoomControl(): void {
@@ -723,7 +967,7 @@ export class NotebookMindMapWidget extends Widget {
 
     if (this._zoomTrigger) {
       this._zoomTrigger.textContent = `Zoom: ${percent}%`;
-      this._zoomTrigger.title = "Choose zoom level";
+      this._zoomTrigger.title = this._t.zoomMenu();
     }
 
     this._zoomMenuItems.forEach((item, preset) => {
@@ -735,12 +979,38 @@ export class NotebookMindMapWidget extends Widget {
   }
 
   private _bindKeyboardEvents(): void {
-    this.node.addEventListener("keydown", this._onKeyDown);
+    this.node.addEventListener("keydown", this._onFormatKeyDown, {
+      capture: true,
+    });
+    this.node.addEventListener("keydown", this._onKeyDown, { capture: true });
   }
 
   private _unbindKeyboardEvents(): void {
-    this.node.removeEventListener("keydown", this._onKeyDown);
+    this.node.removeEventListener("keydown", this._onFormatKeyDown, {
+      capture: true,
+    });
+    this.node.removeEventListener("keydown", this._onKeyDown, { capture: true });
   }
+
+  private _onFormatKeyDown = (event: KeyboardEvent): void => {
+    if (!isMindMapEditingText(this._notebook)) {
+      return;
+    }
+
+    const activeCell = this._notebook.activeCell;
+
+    if (!(activeCell instanceof MarkdownCell)) {
+      return;
+    }
+
+    const editor = activeCell.editor;
+
+    if (editor && handleFormatShortcut(editor, event)) {
+      event.preventDefault();
+      event.stopPropagation();
+      this._formatToolbar?.syncActiveStates();
+    }
+  };
 
   private _focusViewport(): void {
     this._viewport.focus({ preventScroll: true });
@@ -831,7 +1101,7 @@ export class NotebookMindMapWidget extends Widget {
         []) as NotebookCell[],
     );
     const visibleIds = getVisibleOutlineNodeIds(outline, this._collapsedNodes);
-    const handled = handleMindMapShortcut(
+    const result = handleMindMapShortcut(
       this._notebook,
       this._context.model,
       event,
@@ -839,15 +1109,21 @@ export class NotebookMindMapWidget extends Widget {
       this._collapsedNodes,
     );
 
-    if (handled) {
-      const isInsert =
-        event.key === "Enter" || (event.key === "Tab" && !event.shiftKey);
+    if (result === "insert-edit") {
+      const index = this._notebook.activeCellIndex;
+      this._pendingFocusCellIndex = index;
+      this._pendingEditCellIndex = index;
+      return;
+    }
 
-      if (isInsert) {
-        this._pendingFocusCellIndex = this._notebook.activeCellIndex;
-      } else {
-        this._scrollActiveCellIntoView();
-      }
+    if (result === "commit-stay") {
+      this._scrollActiveCellIntoView();
+      this._scheduleLayoutAfterContentChange();
+      return;
+    }
+
+    if (result === "default") {
+      this._scrollActiveCellIntoView();
     }
   };
 
@@ -873,33 +1149,27 @@ export class NotebookMindMapWidget extends Widget {
     return this.node.contains(target as Node) || this._viewport === target;
   }
 
-  private _setTreeDirection(direction: TreeDirection): void {
-    if (this._treeDirection === direction) {
-      return;
+  private _getTreeDirectionTitle(direction: TreeDirection): string {
+    switch (direction) {
+      case "TB":
+        return this._t.treeTopToBottom();
+      case "BT":
+        return this._t.treeBottomToTop();
+      case "LR":
+        return this._t.treeLeftToRight();
+      case "RL":
+        return this._t.treeRightToLeft();
+      default:
+        return this._t.tree();
     }
-
-    this._treeDirection = direction;
-    this._updateDirectionButtons();
-    this._applyLayout();
-  }
-
-  private _setLayoutDensity(density: LayoutDensity): void {
-    if (this._layoutDensity === density) {
-      return;
-    }
-
-    this._layoutDensity = density;
-    this._applyLayout();
   }
 
   private _updateDirectionButtons(): void {
-    const current = TREE_DIRECTIONS.find(
-      ({ value }) => value === this._treeDirection,
-    );
+    const currentTitle = this._getTreeDirectionTitle(this._treeDirection);
 
-    if (this._directionTrigger && current) {
-      this._directionTrigger.textContent = "Tree";
-      this._directionTrigger.title = current.title;
+    if (this._directionTrigger) {
+      this._directionTrigger.textContent = this._t.tree();
+      this._directionTrigger.title = currentTitle;
     }
 
     this._directionMenuItems.forEach((item, direction) => {
@@ -1094,6 +1364,21 @@ export class NotebookMindMapWidget extends Widget {
     });
   }
 
+  private _locateCellInNotebook(index: number): void {
+    this._selectCell(index);
+    this._revealCellInNotebook?.(index);
+  }
+
+  private _getCellIndexFromNodeId(nodeId: string): number {
+    if (!nodeId.startsWith("cell-")) {
+      return -1;
+    }
+
+    const index = Number.parseInt(nodeId.slice("cell-".length), 10);
+
+    return Number.isFinite(index) ? index : -1;
+  }
+
   private _selectCell(index: number): void {
     if (this._notebook.activeCellIndex !== index) {
       this._restoreMarkdownPreview(this._notebook.activeCell);
@@ -1196,8 +1481,8 @@ export class NotebookMindMapWidget extends Widget {
 
     const handle = document.createElement("div");
     handle.className = "jp-LumenNotebookMindMap-dragHandle";
-    handle.title = "Drag to reorder structure";
-    handle.setAttribute("aria-label", "Drag to reorder structure");
+    handle.title = this._t.dragHandleTitle();
+    handle.setAttribute("aria-label", this._t.dragHandleTitle());
     cellNode.prepend(handle);
   }
 
@@ -1354,6 +1639,12 @@ export class NotebookMindMapWidget extends Widget {
 
       if (drag.active) {
         this._completeNodeDrag(drag.nodeId);
+      } else {
+        const index = this._getCellIndexFromNodeId(drag.nodeId);
+
+        if (index >= 0) {
+          this._locateCellInNotebook(index);
+        }
       }
 
       this._clearDragUi();
@@ -1659,10 +1950,19 @@ export class NotebookMindMapWidget extends Widget {
     this._applyTransform();
     this._observeCellNodesForResize();
 
-    if (this._pendingFocusCellIndex !== null) {
-      const index = this._pendingFocusCellIndex;
+    if (this._pendingFocusCellIndex !== null || this._pendingEditCellIndex !== null) {
+      const index = this._pendingEditCellIndex ?? this._pendingFocusCellIndex;
+      const shouldEdit = this._pendingEditCellIndex !== null;
       this._pendingFocusCellIndex = null;
-      this._ensureCellVisibleInViewport(index);
+      this._pendingEditCellIndex = null;
+
+      if (index !== null) {
+        this._ensureCellVisibleInViewport(index);
+
+        if (shouldEdit) {
+          void this._enterCellEditMode(index);
+        }
+      }
     }
   }
 
@@ -1675,6 +1975,8 @@ export class NotebookMindMapWidget extends Widget {
         direction: this._treeDirection,
         collapsedIds: this._collapsedNodes,
         density: this._layoutDensity,
+        siblingGap: this._siblingGap,
+        childGap: this._childGap,
         nodeDimensions,
       }).map((item) => [item.id, item]),
     );
@@ -2066,6 +2368,8 @@ export class NotebookMindMapWidgetFactory extends ABCWidgetFactory<
     private _contentFactory: NotebookPanel.IContentFactory,
     private _mimeTypeService: IEditorMimeTypeService,
     private _commands: CommandRegistry,
+    private _settingsManager: MindMapSettingsManager,
+    private _lumenTranslator: ITranslator,
     toolbarFactory?: (
       widget: NotebookMindMapDocumentWidget,
     ) =>
@@ -2091,6 +2395,8 @@ export class NotebookMindMapWidgetFactory extends ABCWidgetFactory<
       this._contentFactory,
       this._mimeTypeService,
       this._commands,
+      this._settingsManager,
+      this._lumenTranslator,
     );
     return new NotebookMindMapDocumentWidget({ content, context });
   }

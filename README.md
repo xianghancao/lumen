@@ -2,29 +2,41 @@
 
 Jupyter-native **notebook mind map**: rearrange `.ipynb` cells on a spatial canvas by markdown heading hierarchy, using **Jupyter's own cell renderers** (CodeCell / MarkdownCell — not a custom rich-text editor).
 
+<p align="center">
+  <img src="docs/assets/lumen-ui-overview.svg" alt="Lumen mind map UI overview" width="720"/>
+</p>
+
+> **Demo GIF:** A screen recording can be added at [`docs/assets/demo.gif`](docs/assets/demo.gif). Until then, open [`examples/example.ipynb`](examples/example.ipynb) in **Lumen Mind Map** for a hands-on tour.
+
 ## Version
 
 | Component | Version |
 |-----------|---------|
-| **Lumen** | `0.2.0` |
-| `lumen-kernel` | `0.2.0` |
-| `jupyterlab-lumen` | `0.2.0` |
+| **Lumen** | `0.2.1` |
+| `lumen-kernel` | `0.2.1` |
+| `jupyterlab-lumen` | `0.2.1` |
 
-> Previous stack archived under [`old_lumen/`](./old_lumen/) (to be removed).
+See [CHANGELOG.md](./CHANGELOG.md) for release notes.
 
 ## Features
 
 - **Native Jupyter cells** on a pannable, zoomable canvas with connector lines
 - **Heading-driven tree**: `#` (H1) defines mind map roots; `##` / `###` / … nest underneath; other cells attach to the current heading
+- **Empty node insertion**: Tab / Enter create blank markdown cells with correct outline placement (no `markdown cell N` placeholder)
 - **Drag-and-drop** reordering with drop zones (before / inside / after)
 - **Two-way notebook sync**: same `.ipynb` model; structural edits update the notebook
 - **Notebook → Lumen focus**: selecting a cell in the standard ipynb editor pans Lumen to the matching node
 - **Tree direction**: top-bottom, bottom-top, left-right, right-left
-- **Layout density**: Compact, Normal, Loose
+- **Style themes**: Classic, Soft, Contrast
+- **Font**: notebook default plus sans-serif and serif families; adjustable size (Small → Extra Large)
+- **Layout density**: Compact, Normal, Loose (XMind-style spacing)
+- **Background**: Default, Plain (dark), Grid, Dots, Gradient, Business Blue, Eye Care, Newspaper
 - **Appearance**: connector line and node border style, width, and color
-- **Markdown format toolbar** for the active cell (headings, lists, table, image, link, text color)
+- **Markdown format toolbar** (edit mode): Title (H1–H6), Aa (bold/italic/underline/strikethrough/code/highlight/block quote), list styles, table grid picker, image (Markdown/HTML), link (Markdown/HTML), font color
+- **Persistent settings**: theme, font, layout, tree direction, background, and appearance survive refresh (JupyterLab settings)
 - **Keyboard shortcuts** (XMind-style) — see **Guide** in the header
-- **Zoom** presets from 10% to 200% (includes 100%)
+- **Zoom** presets from 10% to 200% (includes 100%) and fullscreen
+- **Product menu**: current version, latest version check (with offline cache), GitHub link
 
 ## Installation
 
@@ -94,9 +106,9 @@ jupyter lab build
 
 ### Open Lumen
 
-Open any `.ipynb` (try `examples/example.ipynb`), then either:
+Open any `.ipynb` (try [`examples/example.ipynb`](examples/example.ipynb)), then either:
 
-- Click the **tree-view** button in the notebook toolbar, or
+- Click **Lumen** in the notebook toolbar, or
 - **Right-click the file → Open With → Lumen Mind Map**
 
 You can keep the classic notebook view and Lumen open on the same file side by side.
@@ -121,13 +133,39 @@ Jupyter document toolbar: save, insert, cut/copy/paste, run, kernel, cell type, 
 
 | Area | Controls |
 |------|----------|
-| **Left** | **Add Mind Map** (+), **Lumen**, **Tree**, **Line**, **Border**, **Layout** |
-| **Right** | Markdown **format** buttons, **Guide** (shortcuts) |
+| **Left** | **Add Mind Map** (+), **Lumen** (version menu), **Tree**, **Style**, **Font**, **Line**, **Border**, **Layout**, **Background**, **Guide** |
+| **Right** | Markdown **format** toolbar (visible in edit mode), see below |
 
-- **Tree** — layout direction (↓ ↑ → ←)
-- **Line** — connector style, width, color
-- **Border** — node border style, width, color
-- **Layout** — Compact / Normal / Loose node spacing
+#### Left toolbar
+
+| Control | What it does |
+|---------|----------------|
+| **+** | Create a new notebook in the same folder and open it as a mind map |
+| **Lumen** | Current version, latest version (cached when offline), GitHub repository |
+| **Tree** | Layout direction: ↓ ↑ → ← |
+| **Style** | Mind map theme: Classic / Soft / Contrast |
+| **Font** | Mind map typeface (notebook default, sans-serif, serif) and size (Small → Extra Large) |
+| **Line** | Connector line style, width, color |
+| **Border** | Node border style, width, color |
+| **Layout** | Node spacing: Compact / Normal / Loose |
+| **Background** | Canvas background: Default, Plain (dark), Grid, Dots, Gradient, Business Blue, Eye Care, Newspaper |
+| **Guide** | Keyboard shortcuts for navigation and markdown formatting |
+
+All of the above (except zoom and fullscreen) are **saved automatically** and restored on refresh.
+
+#### Right format toolbar (edit mode, markdown cells)
+
+| Control | What it does |
+|---------|----------------|
+| **Title** | Outline heading level H1–H6 (changes mind map structure) |
+| **Aa** | Bold, italic, underline, strikethrough, inline code, highlight, block quote, code block, clear formatting |
+| **List** | Bulleted, dashed, numbered, check list |
+| **Table** | Grid picker to insert a Markdown table |
+| **Image** | Insert image via Markdown or HTML syntax |
+| **Link** | Insert link via Markdown or HTML syntax |
+| **Font color** | Preset swatches, custom color, remove color |
+
+> **Title** changes the outline tree. **Aa** and inline styles affect cell content only, not structure.
 
 ### Canvas
 
@@ -135,10 +173,12 @@ Jupyter document toolbar: save, insert, cut/copy/paste, run, kernel, cell type, 
 |--------|----------|
 | **Single click** | Select node (persistent highlight) |
 | **Double click** | Edit cell |
+| **F2** | Enter edit mode |
+| **Escape** | Exit edit mode |
 | **Drag handle** (left edge) | Reorder in the outline tree |
 | **Wheel** | Pan |
 | **Ctrl/Cmd + wheel** | Zoom |
-| **Bottom-right** | Node count and **Zoom: N%** menu |
+| **Bottom-right** | Node count, **Zoom** menu, **Fullscreen** |
 
 ### Outline rules
 
@@ -146,6 +186,7 @@ Jupyter document toolbar: save, insert, cut/copy/paste, run, kernel, cell type, 
 2. Deeper headings nest under the nearest higher-level heading.
 3. Non-heading cells belong to the current heading context.
 4. Content before the first `#` (or orphan `##+` without an H1 parent) is ignored in the map.
+5. **Tab** inserts a child node; **Enter** inserts a sibling. New empty nodes keep the correct tree level even without a `#` heading in the source yet.
 
 ## Architecture
 
@@ -157,9 +198,58 @@ Jupyter document toolbar: save, insert, cut/copy/paste, run, kernel, cell type, 
 
 No Tiptap, React Flow, or separate `.lumen.json` sidecar in this line.
 
+## Roadmap
+
+Planned work after `0.2.0`. These items do not block the current release.
+
+### `0.3.0`
+
+#### Collapse branches
+
+Core mind map capability. Much of the kernel and widget plumbing already exists (`collapsedIds` in layout, edges, and navigation); the remaining work is mostly UI and polish.
+
+- Chevron on parent nodes to fold / unfold a branch
+- Keyboard shortcut (e.g. Space on a selected topic)
+- Badge showing hidden child count when collapsed
+- Relayout after collapse so hidden subtrees free space
+- Optional: collapse all / expand all / collapse to level N
+
+#### Style themes (stronger visual presets)
+
+Today Classic / Soft / Contrast differ only slightly (a few CSS variables). Make each preset visually distinct at a glance:
+
+- **Classic** — keep the current Jupyter-neutral look (balanced borders, subtle shadow)
+- **Soft** — larger corner radius (16px), lighter borders, pronounced card shadow, thinner and softer connector lines
+- **Contrast** — bold H1 node border and background tint, thicker connectors, high-contrast palette (not only `brand-color1`)
+
+Optional: small preview swatches in the Style menu (like Layout) so users can see the difference before switching.
+
+### `0.3.x` / `0.4.0` — Export image & PDF
+
+Presentation and sharing enhancements, not required for day-to-day editing.
+
+- **PNG** — current viewport or entire map (DOM snapshot)
+- **SVG** — structure-only export (titles + connectors from layout data)
+- **PDF** — from PNG or print stylesheet
+
+Likely order: viewport PNG first, then structure SVG, then PDF.
+
 ## Development
 
-Requires the [installation requirements](#requirements) above. From the repository root:
+Requires the [installation requirements](#requirements) above. See [CONTRIBUTING.md](./CONTRIBUTING.md) for the full workflow.
+
+```bash
+# Kernel unit tests + extension TypeScript build check + version sync
+npm run test
+
+# Production labextension build (requires JupyterLab)
+npm run test:release-build
+
+# JupyterLab smoke E2E (requires: npm run jlab:install + Playwright Chromium)
+npm run test:e2e
+```
+
+From the repository root:
 
 ```bash
 # One-shot build + install into the active Python environment
@@ -175,7 +265,8 @@ Build individual packages:
 ```bash
 npm run build:kernel
 npm run build:extension:lib
-npm run build:extension
+npm run build:extension      # dev labextension (local install)
+npm run build:release        # production labextension (PyPI / release)
 ```
 
 Verify the extension:
@@ -190,11 +281,18 @@ npm run jlab:verify
 packages/
   lumen-kernel/         # outline tree, layout, navigation
   jupyterlab-lumen/     # JupyterLab extension + UI
-old_lumen/              # archived previous stack
+docs/
+  assets/               # UI overview SVG, demo GIF (optional)
 examples/
-  example.ipynb
+  example.ipynb         # hands-on feature tour
 scripts/
+CHANGELOG.md
+CONTRIBUTING.md
 ```
+
+## Contributing
+
+Bug reports, feature ideas, and pull requests are welcome. Read [CONTRIBUTING.md](./CONTRIBUTING.md) before opening a PR.
 
 ## License
 

@@ -1,18 +1,42 @@
-import { closeLumenDropdownMenus } from "./formatToolbar";
+import {
+  APPEARANCE_COLOR_SWATCHES,
+  appendColorPickerSection,
+} from "./colorPicker";
+import type { LumenTranslator } from "./lumenI18n";
+import {
+  appendDropdownSectionRow,
+  closeLumenDropdownMenus,
+} from "./formatToolbar";
 
-export type LineStyle = "solid" | "dashed" | "dotted";
+export type EdgeLineStyle =
+  | "solid"
+  | "dashed"
+  | "dotted"
+  | "long-dash"
+  | "dash-dot"
+  | "dense-dot"
+  | "sparse-dash";
+
+export type BorderLineStyle = "solid" | "dashed" | "dotted";
+
+export type LineCap = "round" | "butt" | "square";
+
+/** @deprecated Use EdgeLineStyle or BorderLineStyle */
+export type LineStyle = EdgeLineStyle;
 
 export type AppearanceSettings = {
-  edgeStyle: LineStyle;
+  edgeStyle: EdgeLineStyle;
+  edgeLinecap: LineCap;
   edgeWidth: string;
   edgeColor: string;
-  nodeBorderStyle: LineStyle;
+  nodeBorderStyle: BorderLineStyle;
   nodeBorderWidth: string;
   nodeBorderColor: string;
 };
 
 export const DEFAULT_APPEARANCE: AppearanceSettings = {
   edgeStyle: "solid",
+  edgeLinecap: "butt",
   edgeWidth: "3pt",
   edgeColor: "",
   nodeBorderStyle: "solid",
@@ -20,21 +44,26 @@ export const DEFAULT_APPEARANCE: AppearanceSettings = {
   nodeBorderColor: "",
 };
 
-const COLOR_SWATCHES = [
-  { label: "Default", color: "" },
-  { label: "Red", color: "#d32f2f" },
-  { label: "Orange", color: "#f57c00" },
-  { label: "Green", color: "#388e3c" },
-  { label: "Blue", color: "#1976d2" },
-  { label: "Purple", color: "#7b1fa2" },
-  { label: "Gray", color: "#616161" },
-  { label: "Black", color: "#212121" },
-];
-
-const LINE_STYLES: Array<{ value: LineStyle; label: string }> = [
+const EDGE_LINE_STYLES: Array<{ value: EdgeLineStyle; label: string }> = [
   { value: "solid", label: "Solid" },
   { value: "dashed", label: "Dashed" },
   { value: "dotted", label: "Dotted" },
+  { value: "long-dash", label: "Long dash" },
+  { value: "dash-dot", label: "Dash dot" },
+  { value: "dense-dot", label: "Dense dot" },
+  { value: "sparse-dash", label: "Sparse dash" },
+];
+
+const BORDER_LINE_STYLES: Array<{ value: BorderLineStyle; label: string }> = [
+  { value: "solid", label: "Solid" },
+  { value: "dashed", label: "Dashed" },
+  { value: "dotted", label: "Dotted" },
+];
+
+const LINE_CAPS: Array<{ value: LineCap; label: string }> = [
+  { value: "round", label: "Round" },
+  { value: "butt", label: "Flat" },
+  { value: "square", label: "Square" },
 ];
 
 const EDGE_WIDTHS = ["1pt", "2pt", "3pt", "4pt", "5pt", "6pt", "8pt"];
@@ -45,6 +74,7 @@ export const applyAppearanceToScene = (
   settings: AppearanceSettings,
 ): void => {
   scene.dataset.lumenEdgeStyle = settings.edgeStyle;
+  scene.dataset.lumenEdgeLinecap = settings.edgeLinecap;
   scene.dataset.lumenNodeBorderStyle = settings.nodeBorderStyle;
 
   const setVar = (name: string, value: string) => {
@@ -61,66 +91,115 @@ export const applyAppearanceToScene = (
   setVar("--lumen-node-border-color", settings.nodeBorderColor);
 };
 
-const appendSection = (menu: HTMLElement, label: string): void => {
-  const section = document.createElement("div");
-  section.className = "jp-LumenFormatDropdown-section";
-  section.textContent = label;
-  menu.appendChild(section);
-};
-
 const appendOptionItems = (
   root: HTMLElement,
-  menu: HTMLElement,
-  items: Array<{ label: string; isActive?: boolean; onSelect: () => void }>,
+  row: HTMLElement,
+  items: Array<{
+    label: string;
+    isActive?: boolean;
+    onSelect: () => void;
+    preview?: HTMLElement;
+  }>,
 ): void => {
-  items.forEach(({ label, isActive, onSelect }) => {
+  items.forEach(({ label, isActive, onSelect, preview }) => {
     const item = document.createElement("button");
     item.type = "button";
-    item.className = "jp-LumenFormatDropdown-item";
+    item.className =
+      "jp-LumenFormatDropdown-item jp-LumenAppearanceOption-item";
     item.setAttribute("role", "menuitem");
-    item.textContent = label;
     item.classList.toggle("is-active", Boolean(isActive));
+
+    const labelEl = document.createElement("span");
+    labelEl.className = "jp-LumenAppearanceOption-label";
+    labelEl.textContent = label;
+    item.appendChild(labelEl);
+
+    if (preview) {
+      item.appendChild(preview);
+    }
+
     item.addEventListener("click", (event) => {
       event.stopPropagation();
       onSelect();
-      closeLumenDropdownMenus(root);
     });
-    menu.appendChild(item);
+    row.appendChild(item);
   });
 };
 
-const appendColorSwatches = (
-  root: HTMLElement,
+const createLineStylePreview = (style: EdgeLineStyle): HTMLElement => {
+  const preview = document.createElement("span");
+  preview.className = `jp-LumenAppearancePreview jp-LumenAppearancePreview-line-style is-${style}`;
+  preview.setAttribute("aria-hidden", "true");
+  return preview;
+};
+
+const createLineCapPreview = (cap: LineCap): HTMLElement => {
+  const preview = document.createElement("span");
+  preview.className = `jp-LumenAppearancePreview jp-LumenAppearancePreview-line-cap is-${cap}`;
+  preview.setAttribute("aria-hidden", "true");
+
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.setAttribute("width", "56");
+  svg.setAttribute("height", "12");
+  svg.setAttribute("viewBox", "0 0 56 12");
+
+  const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+  line.setAttribute("x1", "4");
+  line.setAttribute("y1", "6");
+  line.setAttribute("x2", "52");
+  line.setAttribute("y2", "6");
+  line.setAttribute("stroke", "currentColor");
+  line.setAttribute("stroke-width", "4");
+  line.setAttribute("stroke-linecap", cap);
+
+  svg.appendChild(line);
+  preview.appendChild(svg);
+  return preview;
+};
+
+const createLineWidthPreview = (width: string): HTMLElement => {
+  const preview = document.createElement("span");
+  preview.className = "jp-LumenAppearancePreview jp-LumenAppearancePreview-line-width";
+  preview.style.setProperty("--lumen-preview-line-width", width);
+  preview.setAttribute("aria-hidden", "true");
+  return preview;
+};
+
+const createBorderStylePreview = (style: BorderLineStyle): HTMLElement => {
+  const preview = document.createElement("span");
+  preview.className = `jp-LumenAppearancePreview jp-LumenAppearancePreview-border-style is-${style}`;
+  preview.setAttribute("aria-hidden", "true");
+  return preview;
+};
+
+const createBorderWidthPreview = (width: string): HTMLElement => {
+  const preview = document.createElement("span");
+  preview.className =
+    "jp-LumenAppearancePreview jp-LumenAppearancePreview-border-width";
+  preview.style.setProperty("--lumen-preview-border-width", width);
+  preview.setAttribute("aria-hidden", "true");
+  return preview;
+};
+
+const appendAppearanceColorPicker = (
   menu: HTMLElement,
+  sectionLabel: string,
   currentColor: string,
   onSelect: (color: string) => void,
+  customInputId: string,
 ): void => {
-  const swatches = document.createElement("div");
-  swatches.className = "jp-LumenFormatColorSwatches";
-
-  COLOR_SWATCHES.forEach(({ label, color }) => {
-    const swatch = document.createElement("button");
-    swatch.type = "button";
-    swatch.className = "jp-LumenFormatColorSwatch";
-    swatch.title = label;
-    swatch.setAttribute("aria-label", label);
-    swatch.classList.toggle("is-active", color === currentColor);
-
-    if (color) {
-      swatch.style.backgroundColor = color;
-    } else {
-      swatch.classList.add("jp-LumenFormatColorSwatch-default");
-    }
-
-    swatch.addEventListener("click", (event) => {
-      event.stopPropagation();
-      onSelect(color);
-      closeLumenDropdownMenus(root);
-    });
-    swatches.appendChild(swatch);
-  });
-
-  menu.appendChild(swatches);
+  appendColorPickerSection(
+    menu,
+    sectionLabel,
+    currentColor,
+    onSelect,
+    APPEARANCE_COLOR_SWATCHES,
+    {
+      includeDefaultSwatch: true,
+      customInputId,
+      customDefault: "#1976d2",
+    },
+  );
 };
 
 const createGroupedDropdown = (
@@ -165,87 +244,128 @@ export const createAppearanceToolbar = (
   root: HTMLElement,
   getSettings: () => AppearanceSettings,
   onChange: (settings: AppearanceSettings) => void,
+  t: LumenTranslator,
 ): HTMLElement => {
   const toolbar = document.createElement("div");
   toolbar.className = "jp-LumenNotebookMindMap-appearance-toolbar";
   toolbar.setAttribute("role", "toolbar");
-  toolbar.setAttribute("aria-label", "Appearance");
+  toolbar.setAttribute("aria-label", t.appearance());
 
   const patch = (partial: Partial<AppearanceSettings>) => {
     onChange({ ...getSettings(), ...partial });
   };
 
   const rebuild = () => {
+    const openMenuLabels = new Set(
+      Array.from(toolbar.querySelectorAll(".jp-LumenAppearanceDropdown-menu.is-open"))
+        .map((menu) => menu.previousElementSibling)
+        .filter((button): button is HTMLButtonElement => button instanceof HTMLButtonElement)
+        .map((button) => button.getAttribute("aria-label"))
+        .filter((label): label is string => Boolean(label)),
+    );
     const settings = getSettings();
 
     toolbar.replaceChildren(
-      createGroupedDropdown(root, "Line", "Connector line appearance", (menu) => {
-        appendSection(menu, "Style");
+      createGroupedDropdown(root, t.line(), t.connectorLineAppearance(), (menu) => {
         appendOptionItems(
           root,
-          menu,
-          LINE_STYLES.map(({ value, label }) => ({
+          appendDropdownSectionRow(menu, "Style"),
+          EDGE_LINE_STYLES.map(({ value, label }) => ({
             label,
             isActive: settings.edgeStyle === value,
+            preview: createLineStylePreview(value),
             onSelect: () => {
               patch({ edgeStyle: value });
               rebuild();
             },
           })),
         );
-        appendSection(menu, "Width");
         appendOptionItems(
           root,
-          menu,
+          appendDropdownSectionRow(menu, "Line cap"),
+          LINE_CAPS.map(({ value, label }) => ({
+            label,
+            isActive: settings.edgeLinecap === value,
+            preview: createLineCapPreview(value),
+            onSelect: () => {
+              patch({ edgeLinecap: value });
+              rebuild();
+            },
+          })),
+        );
+        appendOptionItems(
+          root,
+          appendDropdownSectionRow(menu, "Width"),
           EDGE_WIDTHS.map((width) => ({
             label: width,
             isActive: settings.edgeWidth === width,
+            preview: createLineWidthPreview(width),
             onSelect: () => {
               patch({ edgeWidth: width });
               rebuild();
             },
           })),
         );
-        appendSection(menu, "Color");
-        appendColorSwatches(root, menu, settings.edgeColor, (color) => {
-          patch({ edgeColor: color });
-          rebuild();
-        });
+        appendAppearanceColorPicker(
+          menu,
+          "Color",
+          settings.edgeColor,
+          (color) => {
+            patch({ edgeColor: color });
+            rebuild();
+          },
+          "jp-LumenAppearanceEdgeColor-input",
+        );
       }),
-      createGroupedDropdown(root, "Border", "Node border appearance", (menu) => {
-        appendSection(menu, "Style");
+      createGroupedDropdown(root, "Border", t.nodeBorderAppearance(), (menu) => {
         appendOptionItems(
           root,
-          menu,
-          LINE_STYLES.map(({ value, label }) => ({
+          appendDropdownSectionRow(menu, "Style"),
+          BORDER_LINE_STYLES.map(({ value, label }) => ({
             label,
             isActive: settings.nodeBorderStyle === value,
+            preview: createBorderStylePreview(value),
             onSelect: () => {
               patch({ nodeBorderStyle: value });
               rebuild();
             },
           })),
         );
-        appendSection(menu, "Width");
         appendOptionItems(
           root,
-          menu,
+          appendDropdownSectionRow(menu, "Width"),
           NODE_BORDER_WIDTHS.map((width) => ({
             label: width,
             isActive: settings.nodeBorderWidth === width,
+            preview: createBorderWidthPreview(width),
             onSelect: () => {
               patch({ nodeBorderWidth: width });
               rebuild();
             },
           })),
         );
-        appendSection(menu, "Color");
-        appendColorSwatches(root, menu, settings.nodeBorderColor, (color) => {
-          patch({ nodeBorderColor: color });
-          rebuild();
-        });
+        appendAppearanceColorPicker(
+          menu,
+          "Color",
+          settings.nodeBorderColor,
+          (color) => {
+            patch({ nodeBorderColor: color });
+            rebuild();
+          },
+          "jp-LumenAppearanceBorderColor-input",
+        );
       }),
     );
+
+    toolbar.querySelectorAll(".jp-LumenAppearanceDropdown").forEach((wrapper) => {
+      const button = wrapper.querySelector(".jp-LumenAppearanceDropdown-btn");
+      const menu = wrapper.querySelector(".jp-LumenAppearanceDropdown-menu");
+      const label = button?.getAttribute("aria-label");
+
+      if (menu && label && openMenuLabels.has(label)) {
+        menu.classList.add("is-open");
+      }
+    });
   };
 
   rebuild();

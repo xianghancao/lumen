@@ -19,4 +19,4 @@ Or set explicit paths:
 LUMEN_PYTHON=/path/to/python LUMEN_JUPYTER=/path/to/jupyter npm run jlab:install
 ```
 
-Open a notebook → toolbar **tree-view** button, or **Open With → Lumen Mind Map**.
+Open a notebook → toolbar **Lumen** button, or **Open With → Lumen Mind Map**.

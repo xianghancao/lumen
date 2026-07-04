@@ -31,9 +31,11 @@ import {
 import { registerMindMapToolbarFactories } from "./mindMapToolbar";
 import {
   bindNotebookToMindMapSync,
+  revealCellInNotebookEditor,
   syncNotebookPanelToMindMaps,
 } from "./notebookViewSync";
 import { NotebookMindMapTracker } from "./tracker";
+import { MindMapSettingsManager } from "./mindMapSettings";
 
 const PLUGIN_ID = "jupyterlab-lumen:plugin";
 
@@ -123,6 +125,8 @@ const plugin: JupyterFrontEndPlugin<void> = {
     };
 
     const trans = (translator ?? nullTranslator).load("jupyterlab");
+    const mindMapSettings = new MindMapSettingsManager(settingRegistry);
+    void mindMapSettings.ready();
 
     registerNotebookCommand(CommandIDs.insertCellBelow, {
       label: trans.__("Insert a cell below"),
@@ -195,6 +199,8 @@ const plugin: JupyterFrontEndPlugin<void> = {
       contentFactory,
       editorServices.mimeTypeService,
       app.commands,
+      mindMapSettings,
+      translator ?? nullTranslator,
       toolbarFactory,
     );
 
@@ -208,6 +214,15 @@ const plugin: JupyterFrontEndPlugin<void> = {
 
     factory.widgetCreated.connect((_, widget) => {
       void mindMapTracker.add(widget);
+
+      widget.content.bindRevealCellInNotebook((cellIndex) => {
+        void revealCellInNotebookEditor(
+          widget.context.path,
+          cellIndex,
+          notebookTracker,
+          docManager,
+        );
+      });
 
       notebookTracker.forEach((panel) => {
         if (panel.context.path === widget.context.path) {

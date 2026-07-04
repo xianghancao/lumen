@@ -1,4 +1,5 @@
 import type { NotebookCell, OutlineNode } from "./types";
+import { getLumenNodeMetadata } from "./node-frame";
 
 const joinCellSource = (source: string | string[]) =>
   Array.isArray(source) ? source.join("") : source;
@@ -6,15 +7,15 @@ const joinCellSource = (source: string | string[]) =>
 export const parseMarkdownHeading = (source: string) => {
   const firstLine =
     source.split("\n").find((line) => line.trim().length > 0)?.trim() ?? "";
-  const match = firstLine.match(/^(#{1,6})\s+(.+)$/);
+  const match = firstLine.match(/^(#{1,6})(?:\s+(.*))?$/);
 
-  if (!match?.[2]) {
+  if (!match?.[1]) {
     return null;
   }
 
   return {
     level: match[1].length,
-    title: match[2].trim(),
+    title: (match[2] ?? "").trim(),
   };
 };
 
@@ -27,7 +28,31 @@ const cellTitle = (cell: NotebookCell, cellIndex: number) => {
   }
 
   const firstLine = source.split("\n").find((line) => line.trim())?.trim();
-  return firstLine || `${cell.cell_type} cell ${cellIndex + 1}`;
+  return firstLine ?? "";
+};
+
+const resolveCellHeading = (
+  cell: NotebookCell,
+): { level: number; title: string } | null => {
+  const source = joinCellSource(cell.source);
+  const markdownHeading =
+    cell.cell_type === "markdown" ? parseMarkdownHeading(source.trim()) : null;
+
+  if (markdownHeading) {
+    return markdownHeading;
+  }
+
+  const metadataLevel = getLumenNodeMetadata(cell)?.headingLevel;
+
+  if (
+    typeof metadataLevel === "number" &&
+    metadataLevel >= 1 &&
+    metadataLevel <= 6
+  ) {
+    return { level: metadataLevel, title: cellTitle(cell, 0) };
+  }
+
+  return null;
 };
 
 type HeadingFrame = {
@@ -54,9 +79,7 @@ export const buildNotebookOutline = (cells: NotebookCell[]): OutlineNode => {
   const headingStack: HeadingFrame[] = [];
 
   cells.forEach((cell, cellIndex) => {
-    const source = joinCellSource(cell.source);
-    const heading =
-      cell.cell_type === "markdown" ? parseMarkdownHeading(source.trim()) : null;
+    const heading = resolveCellHeading(cell);
 
     if (heading) {
       while (

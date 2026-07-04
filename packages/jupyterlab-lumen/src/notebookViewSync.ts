@@ -1,7 +1,63 @@
-import type { NotebookPanel } from "@jupyterlab/notebook";
+import type { IDocumentManager } from "@jupyterlab/docmanager";
+import { NotebookPanel, type INotebookTracker } from "@jupyterlab/notebook";
 import type { NotebookMindMapTracker } from "./tracker";
 
+const NOTEBOOK_FACTORY = "Notebook";
+
 const boundNotebookPanels = new WeakSet<NotebookPanel>();
+
+const findNotebookPanel = (
+  path: string,
+  notebookTracker: INotebookTracker,
+): NotebookPanel | null => {
+  let panel: NotebookPanel | null = null;
+
+  notebookTracker.forEach((candidate) => {
+    if (!panel && candidate.context.path === path) {
+      panel = candidate;
+    }
+  });
+
+  return panel;
+};
+
+export const revealCellInNotebookEditor = async (
+  path: string,
+  cellIndex: number,
+  notebookTracker: INotebookTracker,
+  docManager: IDocumentManager,
+): Promise<void> => {
+  let panel = findNotebookPanel(path, notebookTracker);
+
+  if (!panel) {
+    const widget = await docManager.openOrReveal(path, NOTEBOOK_FACTORY);
+
+    if (widget instanceof NotebookPanel) {
+      panel = widget;
+    }
+  }
+
+  if (!panel) {
+    return;
+  }
+
+  await panel.revealed;
+  panel.activate();
+
+  if (cellIndex < 0 || cellIndex >= panel.content.widgets.length) {
+    return;
+  }
+
+  panel.content.deselectAll();
+  panel.content.activeCellIndex = cellIndex;
+  panel.content.mode = "command";
+
+  const cell = panel.content.widgets[cellIndex];
+
+  requestAnimationFrame(() => {
+    cell?.node.scrollIntoView({ block: "center", behavior: "smooth" });
+  });
+};
 
 export const bindNotebookToMindMapSync = (
   panel: NotebookPanel,

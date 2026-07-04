@@ -56,7 +56,7 @@ export const getSubtreeMaxCellIndex = (
   return maxIndex;
 };
 
-/** Notebook insert index for a sibling or child topic after the current subtree. */
+/** Notebook insert index for a sibling topic after the current subtree. */
 export const getInsertIndexAfterSubtree = (
   root: OutlineNode,
   nodeId: string,
@@ -69,6 +69,21 @@ export const getInsertIndexAfterSubtree = (
   }
 
   return Math.min(maxIndex + 1, cellCount);
+};
+
+/** Notebook insert index for the first child topic directly under `nodeId`. */
+export const getInsertIndexForChild = (
+  root: OutlineNode,
+  nodeId: string,
+  cellCount: number,
+): number => {
+  const located = findOutlineNode(root, nodeId);
+
+  if (!located || located.node.cellIndex === null) {
+    return cellCount;
+  }
+
+  return Math.min(located.node.cellIndex + 1, cellCount);
 };
 
 export const navigateOutlineNode = (

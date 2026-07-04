@@ -33,6 +33,12 @@ const getNodeSize = (
   };
 };
 
+/**
+ * Spacing presets inspired by XMind map layout:
+ * - compact: "Compact Map" — minimal sibling and branch gaps
+ * - normal: default balanced auto-layout spacing
+ * - loose: extra open spacing between topics
+ */
 const DENSITY_SPACING: Record<
   LayoutDensity,
   {
@@ -41,29 +47,117 @@ const DENSITY_SPACING: Record<
     nodesepWhenVertical: number;
     ranksepWhenVertical: number;
     margin: number;
+    verticalGap: number;
   }
 > = {
   compact: {
-    nodesepWhenHorizontal: 40,
-    ranksepWhenHorizontal: 28,
-    nodesepWhenVertical: 28,
-    ranksepWhenVertical: 40,
-    margin: 20,
+    nodesepWhenHorizontal: 6,
+    ranksepWhenHorizontal: 24,
+    nodesepWhenVertical: 24,
+    ranksepWhenVertical: 6,
+    margin: 12,
+    verticalGap: 4,
   },
   normal: {
-    nodesepWhenHorizontal: 72,
-    ranksepWhenHorizontal: 48,
-    nodesepWhenVertical: 48,
-    ranksepWhenVertical: 72,
-    margin: 32,
+    nodesepWhenHorizontal: 22,
+    ranksepWhenHorizontal: 52,
+    nodesepWhenVertical: 52,
+    ranksepWhenVertical: 22,
+    margin: 28,
+    verticalGap: 16,
   },
   loose: {
-    nodesepWhenHorizontal: 108,
-    ranksepWhenHorizontal: 72,
-    nodesepWhenVertical: 72,
-    ranksepWhenVertical: 108,
-    margin: 48,
+    nodesepWhenHorizontal: 44,
+    ranksepWhenHorizontal: 92,
+    nodesepWhenVertical: 92,
+    ranksepWhenVertical: 44,
+    margin: 40,
+    verticalGap: 36,
   },
+};
+
+export const LAYOUT_SIBLING_GAP = {
+  min: 0,
+  max: 100,
+  default: 22,
+} as const;
+
+export const LAYOUT_CHILD_GAP = {
+  min: 0,
+  max: 160,
+  default: 52,
+} as const;
+
+/** Default sibling/child boundary gaps for a layout density preset (LR-oriented). */
+export const getLayoutGapsForDensity = (
+  density: LayoutDensity,
+): { siblingGap: number; childGap: number } => {
+  const spacing = DENSITY_SPACING[density];
+
+  return {
+    siblingGap: spacing.nodesepWhenHorizontal,
+    childGap: spacing.ranksepWhenHorizontal,
+  };
+};
+
+const horizontallyOverlaps = (
+  above: LayoutPosition,
+  below: LayoutPosition,
+): boolean => {
+  const overlap =
+    Math.min(above.x + above.width, below.x + below.width) -
+    Math.max(above.x, below.x);
+
+  return overlap > 24;
+};
+
+/** Enforce XMind-like vertical stacking gaps between adjacent topics. */
+const adjustVerticalGaps = (
+  positions: LayoutPosition[],
+  density: LayoutDensity,
+): LayoutPosition[] => {
+  const targetGap = DENSITY_SPACING[density].verticalGap;
+  const adjusted = new Map(positions.map((position) => [position.id, { ...position }]));
+  const sorted = [...positions].sort((left, right) => {
+    if (left.y !== right.y) {
+      return left.y - right.y;
+    }
+
+    return left.x - right.x;
+  });
+
+  sorted.forEach((node) => {
+    const current = adjusted.get(node.id)!;
+    let minY = Number.NEGATIVE_INFINITY;
+
+    sorted.forEach((candidate) => {
+      if (candidate.id === node.id) {
+        return;
+      }
+
+      const above = adjusted.get(candidate.id)!;
+
+      if (above.y + above.height > current.y) {
+        return;
+      }
+
+      if (!horizontallyOverlaps(above, current)) {
+        return;
+      }
+
+      minY = Math.max(minY, above.y + above.height + targetGap);
+    });
+
+    if (!Number.isFinite(minY)) {
+      return;
+    }
+
+    if (density === "compact" || current.y < minY) {
+      current.y = minY;
+    }
+  });
+
+  return [...adjusted.values()];
 };
 
 /** Top-level layout nodes: the H1 root cell(s), not the virtual outline root. */
@@ -104,22 +198,20 @@ export const layoutOutlineTree = (
   options: LayoutOptions = {},
 ): LayoutPosition[] => {
   const direction: TreeDirection = options.direction ?? "LR";
-  const isHorizontal = direction === "LR" || direction === "RL";
   const collapsedIds = options.collapsedIds ?? new Set<string>();
   const density: LayoutDensity = options.density ?? "normal";
   const spacing = DENSITY_SPACING[density];
+  const densityGaps = getLayoutGapsForDensity(density);
+  const siblingGap = options.siblingGap ?? densityGaps.siblingGap;
+  const childGap = options.childGap ?? densityGaps.childGap;
   const nodeDimensions = options.nodeDimensions;
   const graph = new dagre.graphlib.Graph();
 
   graph.setDefaultEdgeLabel(() => ({}));
   graph.setGraph({
     rankdir: direction,
-    nodesep: isHorizontal
-      ? spacing.nodesepWhenHorizontal
-      : spacing.nodesepWhenVertical,
-    ranksep: isHorizontal
-      ? spacing.ranksepWhenHorizontal
-      : spacing.ranksepWhenVertical,
+    nodesep: siblingGap,
+    ranksep: childGap,
     marginx: spacing.margin,
     marginy: spacing.margin,
   });
@@ -129,7 +221,7 @@ export const layoutOutlineTree = (
   );
   dagre.layout(graph);
 
-  return graph.nodes().map((id) => {
+  const positions = graph.nodes().map((id) => {
     const positioned = graph.node(id);
 
     return {
@@ -140,6 +232,8 @@ export const layoutOutlineTree = (
       height: positioned.height,
     };
   });
+
+  return adjustVerticalGaps(positions, density);
 };
 
 /** Parent → child links for drawing canvas edges. */

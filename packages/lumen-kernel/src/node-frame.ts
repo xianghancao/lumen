@@ -2,6 +2,8 @@ import type { NotebookCell } from "./types";
 
 /** Per-node frame overrides stored in cell metadata (`metadata.lumen`). */
 export type LumenNodeMetadata = {
+  /** Outline heading level when the cell has no markdown `#` prefix. */
+  headingLevel?: number;
   /** Named frame preset, e.g. `default`, `code`, or `heading-2`. */
   frame?: string;
   /** Inline CSS variable overrides for the node frame. */

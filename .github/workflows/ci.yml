@@ -1,0 +1,61 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Version sync check
+        run: npm run check:versions
+
+      - name: Kernel unit tests
+        run: npm run test:kernel
+
+      - name: Extension build check
+        run: npm run test:build
+
+  e2e:
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          npm install
+          python -m pip install --upgrade pip
+          python -m pip install jupyterlab
+          npm run jlab:install
+
+      - name: Install Playwright Chromium
+        run: npx playwright install chromium
+
+      - name: Production release build check
+        run: npm run test:release-build
+
+      - name: JupyterLab smoke E2E
+        run: npm run test:e2e

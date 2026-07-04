@@ -1,17 +1,16 @@
 import { closeLumenDropdownMenus } from "./formatToolbar";
+import type { LumenTranslator } from "./lumenI18n";
 import { applyLumenLogo } from "./lumenLogo";
 import { LUMEN_GITHUB_URL, LUMEN_VERSION } from "./version";
 
 const LUMEN_GITHUB_REPO = "xianghancao/lumen";
+const VERSION_CACHE_KEY = "jupyterlab-lumen:latest-version";
+const VERSION_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 
-const LUMEN_FEATURES = [
-  "Spatial mind map view for Jupyter notebooks",
-  "Heading-based outline tree with native cell renderers",
-  "Drag-and-drop reordering synced to the notebook",
-  "Notebook editor selection focuses the matching node",
-  "Tree direction, layout density, background, theme, and appearance controls",
-  "Markdown formatting toolbar and keyboard shortcuts",
-];
+type VersionCacheEntry = {
+  version: string;
+  fetchedAt: number;
+};
 
 const normalizeVersion = (version: string): string =>
   version.trim().replace(/^v/i, "");
@@ -38,6 +37,44 @@ const compareVersions = (left: string, right: string): number => {
   return 0;
 };
 
+const readVersionCache = (): VersionCacheEntry | null => {
+  try {
+    const raw = localStorage.getItem(VERSION_CACHE_KEY);
+
+    if (!raw) {
+      return null;
+    }
+
+    const parsed = JSON.parse(raw) as VersionCacheEntry;
+
+    if (
+      typeof parsed.version !== "string" ||
+      typeof parsed.fetchedAt !== "number"
+    ) {
+      return null;
+    }
+
+    return parsed;
+  } catch {
+    return null;
+  }
+};
+
+const writeVersionCache = (version: string): void => {
+  try {
+    const entry: VersionCacheEntry = {
+      version,
+      fetchedAt: Date.now(),
+    };
+    localStorage.setItem(VERSION_CACHE_KEY, JSON.stringify(entry));
+  } catch {
+    // Ignore storage failures in private browsing or restricted environments.
+  }
+};
+
+const isCacheFresh = (entry: VersionCacheEntry): boolean =>
+  Date.now() - entry.fetchedAt < VERSION_CACHE_TTL_MS;
+
 export const fetchLatestLumenVersion = async (): Promise<string | null> => {
   const releaseResponse = await fetch(
     `https://api.github.com/repos/${LUMEN_GITHUB_REPO}/releases/latest`,
@@ -63,7 +100,90 @@ export const fetchLatestLumenVersion = async (): Promise<string | null> => {
   return packageJson.version ? normalizeVersion(packageJson.version) : null;
 };
 
-export const createProductMenu = (root: HTMLElement): HTMLElement => {
+const applyLatestVersionState = (
+  latestValueEl: HTMLElement,
+  latest: string,
+  t: LumenTranslator,
+  cached = false,
+): void => {
+  latestValueEl.textContent = `v${latest}`;
+  latestValueEl.classList.remove("is-update-available", "is-up-to-date");
+
+  if (compareVersions(latest, LUMEN_VERSION) > 0) {
+    latestValueEl.classList.add("is-update-available");
+    latestValueEl.title = t.newVersionAvailable();
+    return;
+  }
+
+  latestValueEl.classList.add("is-up-to-date");
+  latestValueEl.title = cached
+    ? `${t.upToDate()} (${t.latestVersion()} cached)`
+    : t.upToDate();
+};
+
+const refreshLatestVersion = (
+  latestValueEl: HTMLElement,
+  t: LumenTranslator,
+): void => {
+  const cached = readVersionCache();
+
+  if (cached) {
+    applyLatestVersionState(latestValueEl, cached.version, t, true);
+  } else {
+    latestValueEl.textContent = "—";
+    latestValueEl.classList.remove("is-update-available", "is-up-to-date");
+    latestValueEl.title = t.latestUnavailable();
+  }
+
+  if (cached && isCacheFresh(cached)) {
+    return;
+  }
+
+  void fetchLatestLumenVersion()
+    .then((latest) => {
+      if (!latest) {
+        if (!cached) {
+          latestValueEl.textContent = t.latestUnavailable();
+          latestValueEl.title = t.latestUnavailable();
+        }
+        return;
+      }
+
+      writeVersionCache(latest);
+      applyLatestVersionState(latestValueEl, latest, t, false);
+    })
+    .catch(() => {
+      if (!cached) {
+        latestValueEl.textContent = t.latestUnavailable();
+        latestValueEl.title = t.latestUnavailable();
+      }
+    });
+};
+
+const createVersionRow = (
+  label: string,
+  value: string,
+): { row: HTMLElement; valueEl: HTMLElement } => {
+  const row = document.createElement("div");
+  row.className = "jp-LumenProductDropdown-versionRow";
+  row.setAttribute("role", "menuitem");
+
+  const labelEl = document.createElement("span");
+  labelEl.className = "jp-LumenProductDropdown-versionLabel";
+  labelEl.textContent = label;
+
+  const valueEl = document.createElement("span");
+  valueEl.className = "jp-LumenProductDropdown-versionValue";
+  valueEl.textContent = value;
+
+  row.append(labelEl, valueEl);
+  return { row, valueEl };
+};
+
+export const createProductMenu = (
+  root: HTMLElement,
+  t: LumenTranslator,
+): HTMLElement => {
   const wrapper = document.createElement("div");
   wrapper.className =
     "jp-LumenFormatDropdown jp-LumenProductDropdown jp-LumenNotebookMindMap-header-brand";
@@ -72,81 +192,32 @@ export const createProductMenu = (root: HTMLElement): HTMLElement => {
   trigger.type = "button";
   trigger.className = "jp-LumenNotebookMindMap-header-title";
   trigger.setAttribute("aria-haspopup", "menu");
-  trigger.setAttribute("aria-label", "About Lumen");
-  trigger.title = "About Lumen";
+  trigger.setAttribute("aria-label", "Lumen");
+  trigger.title = "Lumen";
   applyLumenLogo(trigger, "header");
 
   const menu = document.createElement("div");
   menu.className =
     "jp-LumenFormatDropdown-menu jp-LumenFormatDropdown-menu-wide jp-LumenProductDropdown-menu";
   menu.setAttribute("role", "menu");
-  menu.setAttribute("aria-label", "About Lumen");
-
-  const featuresTitle = document.createElement("div");
-  featuresTitle.className = "jp-LumenFormatDropdown-section";
-  featuresTitle.textContent = "Features";
-  menu.appendChild(featuresTitle);
-
-  const featuresList = document.createElement("ul");
-  featuresList.className = "jp-LumenProductDropdown-features";
-
-  LUMEN_FEATURES.forEach((feature) => {
-    const item = document.createElement("li");
-    item.className = "jp-LumenProductDropdown-feature";
-    item.textContent = feature;
-    featuresList.appendChild(item);
-  });
-
-  menu.appendChild(featuresList);
+  menu.setAttribute("aria-label", "Lumen");
 
   const versionTitle = document.createElement("div");
   versionTitle.className = "jp-LumenFormatDropdown-section";
-  versionTitle.textContent = "Version";
+  versionTitle.textContent = t.version();
   menu.appendChild(versionTitle);
 
-  const versionButton = document.createElement("button");
-  versionButton.type = "button";
-  versionButton.className =
-    "jp-LumenFormatDropdown-item jp-LumenProductDropdown-version";
-  versionButton.setAttribute("role", "menuitem");
-  versionButton.title = "Check for updates";
-  versionButton.textContent = `v${LUMEN_VERSION}`;
+  const versionPanel = document.createElement("div");
+  versionPanel.className = "jp-LumenProductDropdown-versionPanel";
 
-  versionButton.addEventListener("click", (event) => {
-    event.stopPropagation();
-    void (async () => {
-      versionButton.disabled = true;
-      versionButton.textContent = "Checking for updates…";
-
-      try {
-        const latest = await fetchLatestLumenVersion();
-
-        if (!latest) {
-          versionButton.textContent = `v${LUMEN_VERSION} — unable to check`;
-          return;
-        }
-
-        if (compareVersions(latest, LUMEN_VERSION) > 0) {
-          versionButton.textContent = `v${LUMEN_VERSION} — update available: v${latest}`;
-          versionButton.title = `Latest release: v${latest}`;
-          return;
-        }
-
-        versionButton.textContent = `v${LUMEN_VERSION} — up to date`;
-        versionButton.title = "You are on the latest version";
-      } catch {
-        versionButton.textContent = `v${LUMEN_VERSION} — check failed`;
-      } finally {
-        versionButton.disabled = false;
-      }
-    })();
-  });
-
-  menu.appendChild(versionButton);
+  const currentRow = createVersionRow(t.currentVersion(), `v${LUMEN_VERSION}`);
+  const latestRow = createVersionRow(t.latestVersion(), "—");
+  versionPanel.append(currentRow.row, latestRow.row);
+  menu.appendChild(versionPanel);
 
   const repoTitle = document.createElement("div");
   repoTitle.className = "jp-LumenFormatDropdown-section";
-  repoTitle.textContent = "Repository";
+  repoTitle.textContent = t.repository();
   menu.appendChild(repoTitle);
 
   const repoLink = document.createElement("a");
@@ -157,11 +228,10 @@ export const createProductMenu = (root: HTMLElement): HTMLElement => {
   repoLink.target = "_blank";
   repoLink.rel = "noopener noreferrer";
   repoLink.textContent = LUMEN_GITHUB_URL;
-  repoLink.title = "Open GitHub repository";
+  repoLink.title = t.openRepository();
 
   repoLink.addEventListener("click", (event) => {
     event.stopPropagation();
-    closeLumenDropdownMenus(root);
   });
 
   menu.appendChild(repoLink);
@@ -173,6 +243,7 @@ export const createProductMenu = (root: HTMLElement): HTMLElement => {
 
     if (!isOpen) {
       menu.classList.add("is-open");
+      refreshLatestVersion(latestRow.valueEl, t);
     }
   });
 

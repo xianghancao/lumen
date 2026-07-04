@@ -1,4 +1,5 @@
-import { closeLumenDropdownMenus } from "./formatToolbar";
+import type { LumenTranslator } from "./lumenI18n";
+import { closeLumenDropdownMenus, createDropdownOptionRow } from "./formatToolbar";
 
 export type MindMapTheme = "classic" | "soft" | "contrast";
 
@@ -37,6 +38,7 @@ export const createStyleToolbar = (
   root: HTMLElement,
   getTheme: () => MindMapTheme,
   onChange: (theme: MindMapTheme) => void,
+  t: LumenTranslator,
 ): HTMLElement => {
   const toolbar = document.createElement("div");
   toolbar.className = "jp-LumenNotebookMindMap-style-toolbar";
@@ -49,36 +51,35 @@ export const createStyleToolbar = (
   trigger.className =
     "jp-LumenNotebookMindMap-format-btn jp-LumenStyleDropdown-trigger";
   trigger.setAttribute("aria-haspopup", "menu");
-  trigger.setAttribute("aria-label", "Mind map theme");
-  trigger.title = "Mind map theme";
-  trigger.textContent = "Style";
+  trigger.setAttribute("aria-label", t.mindMapTheme());
+  trigger.title = t.mindMapTheme();
+  trigger.textContent = t.style();
 
   const menu = document.createElement("div");
   menu.className =
     "jp-LumenFormatDropdown-menu jp-LumenStyleDropdown-menu";
   menu.setAttribute("role", "menu");
-  menu.setAttribute("aria-label", "Mind map theme");
+  menu.setAttribute("aria-label", t.mindMapTheme());
 
   const rebuildMenu = () => {
-    menu.replaceChildren(
-      ...MIND_MAP_THEMES.map(({ value, label, title }) => {
-        const item = document.createElement("button");
-        item.type = "button";
-        item.className = "jp-LumenFormatDropdown-item jp-LumenStyleDropdown-item";
-        item.setAttribute("role", "menuitem");
-        item.setAttribute("aria-label", title);
-        item.title = title;
-        item.textContent = label;
-        item.classList.toggle("is-active", getTheme() === value);
-        item.addEventListener("click", (event) => {
-          event.stopPropagation();
-          onChange(value);
-          rebuildMenu();
-          closeLumenDropdownMenus(root);
-        });
-        return item;
-      }),
-    );
+    menu.replaceChildren();
+    const row = createDropdownOptionRow(menu);
+    MIND_MAP_THEMES.forEach(({ value, label, title }) => {
+      const item = document.createElement("button");
+      item.type = "button";
+      item.className = "jp-LumenFormatDropdown-item jp-LumenStyleDropdown-item";
+      item.setAttribute("role", "menuitem");
+      item.setAttribute("aria-label", title);
+      item.title = title;
+      item.textContent = label;
+      item.classList.toggle("is-active", getTheme() === value);
+      item.addEventListener("click", (event) => {
+        event.stopPropagation();
+        onChange(value);
+        rebuildMenu();
+      });
+      row.appendChild(item);
+    });
   };
 
   rebuildMenu();

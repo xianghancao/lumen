@@ -1,21 +1,21 @@
 import type { INotebookModel } from "@jupyterlab/notebook";
+import { CodeCell, MarkdownCell } from "@jupyterlab/cells";
 import { NotebookActions, type Notebook } from "@jupyterlab/notebook";
 import type { INotebookContent } from "@jupyterlab/nbformat";
 import {
   buildNotebookOutline,
   findOutlineNode,
   getInsertIndexAfterSubtree,
+  getInsertIndexForChild,
   getMindMapRootNode,
   navigateOutlineNode,
   type NotebookCell,
-  type OutlineNode,
 } from "lumen-kernel";
 
-const headingPrefix = (level: number, title: string) =>
-  `${"#".repeat(Math.min(6, Math.max(1, level)))} ${title}\n`;
+const EMPTY_CELL_SOURCE = "";
 
 const resolveSiblingHeadingLevel = (
-  outline: OutlineNode,
+  outline: ReturnType<typeof buildNotebookOutline>,
   nodeId: string,
 ): number | null => {
   const located = findOutlineNode(outline, nodeId);
@@ -24,15 +24,11 @@ const resolveSiblingHeadingLevel = (
     return 1;
   }
 
-  if (located.node.headingLevel !== null) {
-    return located.node.headingLevel;
-  }
-
-  return null;
+  return located.node.headingLevel;
 };
 
 const resolveChildHeadingLevel = (
-  outline: OutlineNode,
+  outline: ReturnType<typeof buildNotebookOutline>,
   nodeId: string,
 ): number => {
   const located = findOutlineNode(outline, nodeId);
@@ -56,29 +52,15 @@ const insertMarkdownCell = (
   notebook: Notebook,
   model: INotebookModel,
   index: number,
-  source: string,
+  headingLevel?: number,
 ): void => {
   model.sharedModel.insertCell(index, {
     cell_type: "markdown",
-    metadata: {},
-    source,
-  });
-  notebook.activeCellIndex = index;
-  notebook.deselectAll();
-  notebook.mode = "command";
-};
-
-const insertDefaultCell = (
-  notebook: Notebook,
-  model: INotebookModel,
-  index: number,
-): void => {
-  model.sharedModel.insertCell(index, {
-    cell_type: notebook.notebookConfig.defaultCell,
     metadata:
-      notebook.notebookConfig.defaultCell === "code"
-        ? { trusted: true }
+      headingLevel !== undefined
+        ? { lumen: { headingLevel } }
         : {},
+    source: EMPTY_CELL_SOURCE,
   });
   notebook.activeCellIndex = index;
   notebook.deselectAll();
@@ -88,75 +70,75 @@ const insertDefaultCell = (
 const getNotebookCells = (model: INotebookModel): NotebookCell[] =>
   ((model.toJSON() as INotebookContent).cells ?? []) as NotebookCell[];
 
+export const commitActiveMindMapCell = (notebook: Notebook): void => {
+  const cell = notebook.activeCell;
+
+  if (cell instanceof CodeCell) {
+    void NotebookActions.run(notebook);
+  } else if (cell instanceof MarkdownCell && !cell.rendered) {
+    cell.rendered = true;
+  }
+
+  notebook.mode = "command";
+};
+
 export const insertMindMapSibling = (
   notebook: Notebook,
   model: INotebookModel,
 ): void => {
+  const insertIndex =
+    notebook.activeCellIndex < 0
+      ? model.cells.length
+      : getInsertIndexAfterSubtree(
+          buildNotebookOutline(getNotebookCells(model)),
+          `cell-${notebook.activeCellIndex}`,
+          model.cells.length,
+        );
+
   if (notebook.activeCellIndex < 0) {
-    insertMarkdownCell(
-      notebook,
-      model,
-      model.cells.length,
-      headingPrefix(1, "New Topic"),
-    );
+    insertMarkdownCell(notebook, model, insertIndex, 1);
     return;
   }
 
-  const cells = getNotebookCells(model);
-  const outline = buildNotebookOutline(cells);
-  const activeIndex = notebook.activeCellIndex;
-  const nodeId = `cell-${activeIndex}`;
-  const insertIndex = getInsertIndexAfterSubtree(
+  const outline = buildNotebookOutline(getNotebookCells(model));
+  const level = resolveSiblingHeadingLevel(
     outline,
-    nodeId,
-    model.cells.length,
+    `cell-${notebook.activeCellIndex}`,
   );
-  const level = resolveSiblingHeadingLevel(outline, nodeId);
 
   if (level !== null) {
-    insertMarkdownCell(
-      notebook,
-      model,
-      insertIndex,
-      headingPrefix(level, "New Topic"),
-    );
+    insertMarkdownCell(notebook, model, insertIndex, level);
     return;
   }
 
-  insertDefaultCell(notebook, model, insertIndex);
+  insertMarkdownCell(notebook, model, insertIndex);
 };
 
 export const insertMindMapChild = (
   notebook: Notebook,
   model: INotebookModel,
 ): void => {
+  const insertIndex =
+    notebook.activeCellIndex < 0
+      ? model.cells.length
+      : getInsertIndexForChild(
+          buildNotebookOutline(getNotebookCells(model)),
+          `cell-${notebook.activeCellIndex}`,
+          model.cells.length,
+        );
+
   if (notebook.activeCellIndex < 0) {
-    insertMarkdownCell(
-      notebook,
-      model,
-      model.cells.length,
-      headingPrefix(1, "New Topic"),
-    );
+    insertMarkdownCell(notebook, model, insertIndex, 1);
     return;
   }
 
-  const cells = getNotebookCells(model);
-  const outline = buildNotebookOutline(cells);
-  const activeIndex = notebook.activeCellIndex;
-  const nodeId = `cell-${activeIndex}`;
-  const insertIndex = getInsertIndexAfterSubtree(
+  const outline = buildNotebookOutline(getNotebookCells(model));
+  const level = resolveChildHeadingLevel(
     outline,
-    nodeId,
-    model.cells.length,
+    `cell-${notebook.activeCellIndex}`,
   );
-  const level = resolveChildHeadingLevel(outline, nodeId);
 
-  insertMarkdownCell(
-    notebook,
-    model,
-    insertIndex,
-    headingPrefix(level, "New Subtopic"),
-  );
+  insertMarkdownCell(notebook, model, insertIndex, level);
 };
 
 export const selectMindMapCell = (
@@ -232,20 +214,39 @@ export const isMindMapEditingText = (notebook: Notebook): boolean => {
   );
 };
 
+export type MindMapShortcutResult =
+  | false
+  | "default"
+  | "insert-edit"
+  | "commit-stay";
+
 export const handleMindMapShortcut = (
   notebook: Notebook,
   model: INotebookModel,
   event: KeyboardEvent,
   visibleIds: ReadonlySet<string>,
   collapsedIds: ReadonlySet<string>,
-): boolean => {
+): MindMapShortcutResult => {
   const mod = event.metaKey || event.ctrlKey;
 
   if (isMindMapEditingText(notebook)) {
     if (event.key === "Escape") {
       notebook.mode = "command";
       event.preventDefault();
-      return true;
+      return "default";
+    }
+
+    if (event.key === "Enter" && event.shiftKey && !mod) {
+      commitActiveMindMapCell(notebook);
+      insertMindMapSibling(notebook, model);
+      event.preventDefault();
+      return "insert-edit";
+    }
+
+    if (event.key === "Enter" && mod && !event.shiftKey) {
+      commitActiveMindMapCell(notebook);
+      event.preventDefault();
+      return "commit-stay";
     }
 
     return false;
@@ -254,7 +255,7 @@ export const handleMindMapShortcut = (
   if (mod && event.key.toLowerCase() === "z" && !event.shiftKey) {
     NotebookActions.undo(notebook);
     event.preventDefault();
-    return true;
+    return "default";
   }
 
   if (
@@ -264,55 +265,55 @@ export const handleMindMapShortcut = (
   ) {
     NotebookActions.redo(notebook);
     event.preventDefault();
-    return true;
+    return "default";
   }
 
   if (mod && event.key.toLowerCase() === "c") {
     void NotebookActions.copy(notebook);
     event.preventDefault();
-    return true;
+    return "default";
   }
 
   if (mod && event.key.toLowerCase() === "x") {
     NotebookActions.cut(notebook);
     event.preventDefault();
-    return true;
+    return "default";
   }
 
   if (mod && event.key.toLowerCase() === "v") {
     NotebookActions.paste(notebook, "below");
     event.preventDefault();
-    return true;
+    return "default";
   }
 
   if (mod && event.key === "Home") {
     selectRootMindMapCell(notebook, model);
     event.preventDefault();
-    return true;
+    return "default";
   }
 
   if (event.key === "Delete" || event.key === "Backspace") {
     NotebookActions.deleteCells(notebook);
     event.preventDefault();
-    return true;
+    return "default";
   }
 
   if (event.key === "Enter" && !event.shiftKey && !mod) {
     insertMindMapSibling(notebook, model);
     event.preventDefault();
-    return true;
+    return "insert-edit";
   }
 
   if (event.key === "Tab" && !event.shiftKey && !mod) {
     insertMindMapChild(notebook, model);
     event.preventDefault();
-    return true;
+    return "insert-edit";
   }
 
   if (event.key === "Escape") {
     notebook.mode = "command";
     event.preventDefault();
-    return true;
+    return "default";
   }
 
   if (
@@ -340,7 +341,7 @@ export const handleMindMapShortcut = (
       )
     ) {
       event.preventDefault();
-      return true;
+      return "default";
     }
   }
 

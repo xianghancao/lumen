@@ -222,14 +222,15 @@ export const replaceMarkdownHeadingTitle = (
 
   const line = lines[lineIndex]!;
   const trimmed = line.trim();
-  const match = trimmed.match(/^(#{1,6})\s+(.+)$/);
+  const match = trimmed.match(/^(#{1,6})(?:\s+(.*))?$/);
 
   if (!match?.[1]) {
     return source;
   }
 
   const leading = line.slice(0, line.indexOf(trimmed));
-  lines[lineIndex] = `${leading}${match[1]} ${newTitle.trim()}`;
+  const title = newTitle.trim();
+  lines[lineIndex] = `${leading}${match[1]}${title ? ` ${title}` : ""}`;
   return lines.join("\n");
 };
 
@@ -246,14 +247,15 @@ export const updateMarkdownHeadingSource = (
 
   const line = lines[lineIndex]!;
   const trimmed = line.trim();
-  const match = trimmed.match(/^(#{1,6})\s+(.+)$/);
+  const match = trimmed.match(/^(#{1,6})(?:\s+(.*))?$/);
 
-  if (!match?.[2]) {
+  if (!match?.[1]) {
     return source;
   }
 
   const leading = line.slice(0, line.indexOf(trimmed));
-  lines[lineIndex] = `${leading}${"#".repeat(level)} ${match[2]}`;
+  const title = (match[2] ?? "").trim();
+  lines[lineIndex] = `${leading}${"#".repeat(level)}${title ? ` ${title}` : ""}`;
   return lines.join("\n");
 };
 

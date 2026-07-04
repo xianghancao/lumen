@@ -1,6 +1,6 @@
 {
   "name": "jupyterlab-lumen",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Jupyter-native notebook mind map view for JupyterLab",
   "keywords": [
     "jupyter",
@@ -25,6 +25,7 @@
   ],
   "scripts": {
     "build": "npm run build:kernel && npm run build:lib && npm run build:labextension:dev",
+    "build:release": "npm run build:kernel && npm run build:lib && npm run build:labextension",
     "build:kernel": "npm run build --workspace=lumen-kernel",
     "build:lib": "tsc -p tsconfig.json",
     "build:labextension": "jupyter labextension build .",
@@ -51,7 +52,7 @@
     "@jupyterlab/ui-components": "^4.3.5",
     "@lumino/disposable": "^2.1.2",
     "@lumino/widgets": "^2.5.0",
-    "lumen-kernel": "0.2.0"
+    "lumen-kernel": "0.2.1"
   },
   "devDependencies": {
     "@jupyterlab/builder": "^4.3.5",
