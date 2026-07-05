@@ -1,6 +1,6 @@
 import type { IMarkdownCellModel } from "@jupyterlab/cells";
 import type { CodeEditor } from "@jupyterlab/codeeditor";
-import { parseMarkdownHeading } from "kuusi-kernel";
+import { LEGACY_CELL_METADATA_KEY, parseMarkdownHeading } from "kuusi-kernel";
 
 const LIST_PREFIX_PATTERN =
   /^(?:\d+\.\s+|[-*+–]\s+(?:\[[ xX]\]\s+)?)/;
@@ -268,7 +268,7 @@ const readCellKuusiMetadata = (
     return kuusi as Record<string, unknown>;
   }
 
-  const legacy = cell.getMetadata("lumen");
+  const legacy = cell.getMetadata(LEGACY_CELL_METADATA_KEY);
   if (legacy && typeof legacy === "object") {
     return legacy as Record<string, unknown>;
   }

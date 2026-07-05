@@ -3,7 +3,7 @@ import type { KuusiTranslator } from "./kuusiI18n";
 import { applyKuusiLogo } from "./kuusiLogo";
 import { KUUSI_GITHUB_URL, KUUSI_VERSION } from "./version";
 
-const KUUSI_GITHUB_REPO = "xianghancao/lumen";
+const KUUSI_GITHUB_REPO = "xianghancao/kuusi";
 const VERSION_CACHE_KEY = "jupyterlab-kuusi:latest-version";
 const VERSION_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 

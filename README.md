@@ -56,7 +56,7 @@ See [CHANGELOG.md](./CHANGELOG.md) for release notes.
 Clone the repo, activate the Python environment where JupyterLab is installed, then run:
 
 ```bash
-git clone https://github.com/xianghancao/lumen.git
+git clone https://github.com/xianghancao/kuusi.git
 cd kuusi
 npm run jlab:install
 jupyter lab
@@ -73,7 +73,7 @@ KUUSI_PYTHON=/path/to/python KUUSI_JUPYTER=/path/to/jupyter npm run jlab:install
 ### Manual install
 
 ```bash
-git clone https://github.com/xianghancao/lumen.git
+git clone https://github.com/xianghancao/kuusi.git
 cd kuusi
 
 npm install
@@ -196,7 +196,7 @@ All of the above (except zoom and fullscreen) are **saved automatically** and re
     → jupyterlab-kuusi: canvas with native Jupyter cell widgets
 ```
 
-No Tiptap, React Flow, or separate `.lumen.json` sidecar in this line.
+No Tiptap, React Flow, or separate JSON sidecar in this line.
 
 ## Roadmap
 

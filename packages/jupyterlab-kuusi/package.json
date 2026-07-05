@@ -13,7 +13,7 @@
   "license": "BSD-3-Clause",
   "repository": {
     "type": "git",
-    "url": "https://github.com/xianghancao/lumen.git"
+    "url": "https://github.com/xianghancao/kuusi.git"
   },
   "main": "lib/index.js",
   "types": "lib/index.d.ts",

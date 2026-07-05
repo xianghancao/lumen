@@ -3,13 +3,13 @@ requires = ["hatchling>=1.5.0"]
 build-backend = "hatchling.build"
 
 [project]
-name = "jupyterlab-lumen"
+name = "jupyterlab-kuusi"
 description = "Jupyter-native notebook mind map view for JupyterLab"
 readme = "README.md"
 license = { file = "LICENSE" }
 requires-python = ">=3.9"
 authors = [
-  { name = "Lumen contributors" },
+  { name = "Kuusi contributors" },
 ]
 classifiers = [
     "Framework :: Jupyter",
@@ -23,26 +23,26 @@ dependencies = []
 dynamic = ["version"]
 
 [tool.hatch.version]
-path = "jupyterlab_lumen/_version.py"
+path = "jupyterlab_kuusi/_version.py"
 
 [project.optional-dependencies]
 test = ["pytest>=7.0", "pytest-asyncio>=0.21"]
 
 [tool.hatch.build.targets.wheel.shared-data]
-"jupyterlab_lumen/labextension" = "share/jupyter/labextensions/jupyterlab-lumen"
-"install.json" = "share/jupyter/labextensions/jupyterlab-lumen/install.json"
+"jupyterlab_kuusi/labextension" = "share/jupyter/labextensions/jupyterlab-kuusi"
+"install.json" = "share/jupyter/labextensions/jupyterlab-kuusi/install.json"
 
 [tool.hatch.build.targets.sdist]
-artifacts = ["jupyterlab_lumen/labextension"]
+artifacts = ["jupyterlab_kuusi/labextension"]
 
 [tool.hatch.build.hooks.jupyter-builder]
 dependencies = ["hatch-jupyter-builder>=0.8"]
 build-function = "hatch_jupyter_builder.npm_builder"
 ensured-targets = [
-    "jupyterlab_lumen/labextension/static/style.js",
-    "jupyterlab_lumen/labextension/package.json",
+    "jupyterlab_kuusi/labextension/static/style.js",
+    "jupyterlab_kuusi/labextension/package.json",
 ]
-skip-if-exists = ["jupyterlab_lumen/labextension/static/style.js"]
+skip-if-exists = ["jupyterlab_kuusi/labextension/static/style.js"]
 
 [tool.hatch.build.hooks.jupyter-builder.build-kwargs]
 build_cmd = "build:labextension"
@@ -52,7 +52,7 @@ npm = ["npm"]
 build_cmd = "install:extension"
 npm = ["npm"]
 source_dir = "src"
-build_dir = "jupyterlab_lumen/labextension"
+build_dir = "jupyterlab_kuusi/labextension"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

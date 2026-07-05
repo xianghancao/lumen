@@ -9,7 +9,7 @@ lib/
 build/
 packages/*/lib/
 packages/*/dist/
-**/jupyterlab_lumen/labextension/
+**/jupyterlab_kuusi/labextension/
 *.tsbuildinfo
 .lerna/
 

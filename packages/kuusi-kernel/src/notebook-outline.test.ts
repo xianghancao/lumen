@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
+import { LEGACY_CELL_METADATA_KEY } from "./node-frame";
 import { buildNotebookOutline, parseMarkdownHeading } from "./notebook-outline";
 import { code, md } from "./test-helpers";
 
@@ -79,6 +80,15 @@ describe("buildNotebookOutline", () => {
     assert.equal(root.children[0]?.children[0]?.title, "");
     assert.equal(root.children[0]?.children[0]?.children[0]?.headingLevel, 3);
     assert.equal(root.children[0]?.children[0]?.children[0]?.title, "");
+  });
+
+  it("reads legacy pre-rebrand cell metadata", () => {
+    const root = buildNotebookOutline([
+      md("# Root"),
+      md("", { [LEGACY_CELL_METADATA_KEY]: { headingLevel: 2 } }),
+    ]);
+
+    assert.equal(root.children[0]?.children[0]?.headingLevel, 2);
   });
 
   it("prefers markdown heading over metadata level", () => {

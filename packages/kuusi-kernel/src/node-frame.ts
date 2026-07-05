@@ -27,10 +27,14 @@ const FRAME_STYLE_VAR_MAP: Record<keyof NodeFrameStyle, string> = {
   boxShadow: "--kuusi-node-shadow",
 };
 
+/** Pre-rebrand notebook cell metadata key (read-only for compatibility). */
+export const LEGACY_CELL_METADATA_KEY = "lumen";
+
 const readKuusiMetadata = (
   metadata: NotebookCell["metadata"],
 ): KuusiNodeMetadata | undefined => {
-  const kuusi = metadata?.kuusi ?? metadata?.lumen;
+  const record = metadata as Record<string, unknown> | undefined;
+  const kuusi = record?.kuusi ?? record?.[LEGACY_CELL_METADATA_KEY];
 
   if (!kuusi || typeof kuusi !== "object") {
     return undefined;

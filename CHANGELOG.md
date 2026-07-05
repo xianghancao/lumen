@@ -20,11 +20,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Removed
 
 - Ad-hoc debug Playwright scripts under `scripts/debug-*.mjs` and `scripts/test-*.mjs`
-- Stale `old_lumen/` references from README (directory already absent from the repo)
+- Stale archived prototype references from README (directory already absent from the repo)
 
 ## [0.2.0] - 2026-07-03
 
-First public release of the Jupyter-native mind map stack (`kuusi-kernel` + `jupyterlab-kuusi`). Replaces the archived React/Tiptap prototype under `old_lumen/`.
+First public release of the Jupyter-native mind map stack (`kuusi-kernel` + `jupyterlab-kuusi`). Replaces the archived React/Tiptap prototype.
 
 ### Added
 
@@ -58,12 +58,12 @@ First public release of the Jupyter-native mind map stack (`kuusi-kernel` + `jup
 
 ### Removed
 
-- Dependency on the archived `old_lumen/` stack (Tiptap, React Flow, `.lumen.json` sidecar)
+- Dependency on the archived React/Tiptap prototype stack (Tiptap, React Flow, legacy JSON sidecar)
 
 ## [0.1.x and earlier]
 
-Pre-0.2.0 prototypes lived in `old_lumen/` and are not part of this changelog.
+Pre-0.2.0 prototypes are not part of this changelog.
 
-[Unreleased]: https://github.com/xianghancao/lumen/compare/v0.2.1...HEAD
-[0.2.1]: https://github.com/xianghancao/lumen/releases/tag/v0.2.1
-[0.2.0]: https://github.com/xianghancao/lumen/releases/tag/v0.2.0
+[Unreleased]: https://github.com/xianghancao/kuusi/compare/v0.2.1...HEAD
+[0.2.1]: https://github.com/xianghancao/kuusi/releases/tag/v0.2.1
+[0.2.0]: https://github.com/xianghancao/kuusi/releases/tag/v0.2.0

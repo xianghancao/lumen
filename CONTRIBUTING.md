@@ -27,7 +27,7 @@ Use **npm** for JavaScript dependencies (`package-lock.json`). Yarn artifacts ar
 ### Clone and install
 
 ```bash
-git clone https://github.com/xianghancao/lumen.git
+git clone https://github.com/xianghancao/kuusi.git
 cd kuusi
 npm run jlab:install
 jupyter lab
