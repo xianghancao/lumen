@@ -5,18 +5,18 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 cd "$ROOT_DIR"
 
-echo "==> Building lumen-kernel"
+echo "==> Building kuusi-kernel"
 npm run build:kernel
 
-echo "==> Building jupyterlab-lumen TypeScript"
+echo "==> Building jupyterlab-kuusi TypeScript"
 npm run build:extension:lib
 
 required_files=(
-  "packages/lumen-kernel/dist/index.js"
-  "packages/lumen-kernel/dist/notebook-outline.js"
-  "packages/jupyterlab-lumen/lib/index.js"
-  "packages/jupyterlab-lumen/lib/notebookMindMapWidget.js"
-  "packages/jupyterlab-lumen/schema/plugin.json"
+  "packages/kuusi-kernel/dist/index.js"
+  "packages/kuusi-kernel/dist/notebook-outline.js"
+  "packages/jupyterlab-kuusi/lib/index.js"
+  "packages/jupyterlab-kuusi/lib/notebookMindMapWidget.js"
+  "packages/jupyterlab-kuusi/schema/plugin.json"
 )
 
 for file in "${required_files[@]}"; do

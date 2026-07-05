@@ -1,6 +1,6 @@
-# Contributing to Lumen
+# Contributing to Kuusi
 
-Thank you for your interest in contributing. Lumen is a monorepo with a TypeScript kernel and a JupyterLab 4 extension.
+Thank you for your interest in contributing. Kuusi is a monorepo with a TypeScript kernel and a JupyterLab 4 extension.
 
 ## What to work on
 
@@ -28,12 +28,12 @@ Use **npm** for JavaScript dependencies (`package-lock.json`). Yarn artifacts ar
 
 ```bash
 git clone https://github.com/xianghancao/lumen.git
-cd lumen
+cd kuusi
 npm run jlab:install
 jupyter lab
 ```
 
-`npm run jlab:install` builds `lumen-kernel`, compiles `jupyterlab-lumen`, installs the Python package in editable mode, and rebuilds JupyterLab.
+`npm run jlab:install` builds `kuusi-kernel`, compiles `jupyterlab-kuusi`, installs the Python package in editable mode, and rebuilds JupyterLab.
 
 ### Day-to-day workflow
 
@@ -76,24 +76,24 @@ npm run test:release-build
 npm run test:e2e
 ```
 
-`npm run test:e2e` starts a temporary JupyterLab server, opens `examples/example.ipynb` via the **Lumen** toolbar button, and asserts that the mind map renders.
+`npm run test:e2e` starts a temporary JupyterLab server, opens `examples/example.ipynb` via the **Kuusi** toolbar button, and asserts that the mind map renders.
 
 Bump versions together in:
 
 - `package.json` (root)
-- `packages/lumen-kernel/package.json`
-- `packages/jupyterlab-lumen/package.json`
-- `packages/jupyterlab-lumen/src/version.ts`
-- `packages/jupyterlab-lumen/jupyterlab_lumen/_version.py`
-- `jupyterlab-lumen` dependency on `lumen-kernel`
+- `packages/kuusi-kernel/package.json`
+- `packages/jupyterlab-kuusi/package.json`
+- `packages/jupyterlab-kuusi/src/version.ts`
+- `packages/jupyterlab-kuusi/jupyterlab_kuusi/_version.py`
+- `jupyterlab-kuusi` dependency on `kuusi-kernel`
 
 Then run `npm run check:versions` before opening a PR.
 
 ### Project layout
 
 ```
-packages/lumen-kernel/      # outline tree, dagre layout, navigation (no Jupyter deps)
-packages/jupyterlab-lumen/  # JupyterLab extension, toolbars, widget
+packages/kuusi-kernel/      # outline tree, dagre layout, navigation (no Jupyter deps)
+packages/jupyterlab-kuusi/  # JupyterLab extension, toolbars, widget
 examples/example.ipynb      # manual feature tour — update when adding user-facing behavior
 docs/assets/                # README visuals (SVG overview, optional demo GIF)
 e2e/                        # JupyterLab smoke E2E (Playwright)
@@ -102,8 +102,8 @@ scripts/                    # install, verify, build/release checks
 
 | Package | Responsibility |
 |---------|----------------|
-| `lumen-kernel` | Pure logic: `buildNotebookOutline`, layout, drag target resolution, keyboard navigation helpers |
-| `jupyterlab-lumen` | UI: `NotebookMindMapWidget`, toolbars, settings persistence, JupyterLab plugin entry |
+| `kuusi-kernel` | Pure logic: `buildNotebookOutline`, layout, drag target resolution, keyboard navigation helpers |
+| `jupyterlab-kuusi` | UI: `NotebookMindMapWidget`, toolbars, settings persistence, JupyterLab plugin entry |
 
 Keep kernel logic free of JupyterLab imports so it stays testable in isolation.
 
@@ -117,11 +117,11 @@ Keep kernel logic free of JupyterLab imports so it stays testable in isolation.
 
 ### User-facing strings
 
-New UI labels should go through `packages/jupyterlab-lumen/src/lumenI18n.ts` and JupyterLab's `TranslationBundle` (`trans.__("…")`).
+New UI labels should go through `packages/jupyterlab-kuusi/src/kuusiI18n.ts` and JupyterLab's `TranslationBundle` (`trans.__("…")`).
 
 ### Settings
 
-Persistent preferences belong in `packages/jupyterlab-lumen/schema/plugin.json` and `mindMapSettings.ts`. Add schema properties with defaults; do not store settings only in widget memory.
+Persistent preferences belong in `packages/jupyterlab-kuusi/schema/plugin.json` and `mindMapSettings.ts`. Add schema properties with defaults; do not store settings only in widget memory.
 
 ### Example notebook
 
@@ -135,7 +135,7 @@ Update `README.md` for installation or feature changes. Add a bullet to `CHANGEL
 
 Place assets in `docs/assets/`:
 
-- `lumen-ui-overview.svg` — wireframe (already included)
+- `kuusi-ui-overview.svg` — wireframe (already included)
 - `demo.gif` — optional screen recording referenced from the README
 
 ## Submitting a pull request
@@ -159,7 +159,7 @@ Place assets in `docs/assets/`:
 Include:
 
 - JupyterLab version (`jupyter lab --version`)
-- Lumen version (from the **Lumen** menu → Current)
+- Kuusi version (from the **Kuusi** menu → Current)
 - Steps to reproduce
 - Expected vs actual behavior
 - Screenshots or a short screen recording if UI-related

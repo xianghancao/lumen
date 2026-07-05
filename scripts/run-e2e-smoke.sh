@@ -5,17 +5,17 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # shellcheck source=lib/jupyter-tools.sh
 source "$ROOT_DIR/scripts/lib/jupyter-tools.sh"
 
-lumen_require_commands
+kuusi_require_commands
 
-PORT="${LUMEN_E2E_PORT:-18888}"
-TOKEN="${LUMEN_E2E_TOKEN:-lumen-e2e-token}"
-LOG_FILE="${LUMEN_E2E_LOG:-/tmp/lumen-e2e-jupyter.log}"
-PID_FILE="${LUMEN_E2E_PID:-/tmp/lumen-e2e-jupyter.pid}"
+PORT="${KUUSI_E2E_PORT:-18888}"
+TOKEN="${KUUSI_E2E_TOKEN:-kuusi-e2e-token}"
+LOG_FILE="${KUUSI_E2E_LOG:-/tmp/kuusi-e2e-jupyter.log}"
+PID_FILE="${KUUSI_E2E_PID:-/tmp/kuusi-e2e-jupyter.pid}"
 
 cd "$ROOT_DIR"
 
-if ! "$LUMEN_JUPYTER" labextension list 2>&1 | grep -qi lumen; then
-  echo "ERROR: jupyterlab-lumen is not installed. Run: npm run jlab:install" >&2
+if ! "$KUUSI_JUPYTER" labextension list 2>&1 | grep -qi kuusi; then
+  echo "ERROR: jupyterlab-kuusi is not installed. Run: npm run jlab:install" >&2
   exit 1
 fi
 
@@ -41,12 +41,12 @@ cleanup() {
 trap cleanup EXIT INT TERM
 
 if lsof -i ":$PORT" >/dev/null 2>&1; then
-  echo "ERROR: port $PORT is already in use. Set LUMEN_E2E_PORT to another value." >&2
+  echo "ERROR: port $PORT is already in use. Set KUUSI_E2E_PORT to another value." >&2
   exit 1
 fi
 
 echo "==> Starting JupyterLab on port $PORT"
-"$LUMEN_JUPYTER" lab \
+"$KUUSI_JUPYTER" lab \
   --no-browser \
   --port="$PORT" \
   --IdentityProvider.token="$TOKEN" \
@@ -75,8 +75,8 @@ if [[ "$ready" -ne 1 ]]; then
   exit 1
 fi
 
-export LUMEN_E2E_URL="http://127.0.0.1:$PORT"
-export LUMEN_E2E_TOKEN="$TOKEN"
+export KUUSI_E2E_URL="http://127.0.0.1:$PORT"
+export KUUSI_E2E_TOKEN="$TOKEN"
 
 echo "==> Running JupyterLab smoke E2E"
 node "$ROOT_DIR/e2e/jupyterlab-smoke.mjs"

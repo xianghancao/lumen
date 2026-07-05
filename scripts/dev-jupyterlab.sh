@@ -5,22 +5,22 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # shellcheck source=lib/jupyter-tools.sh
 source "$ROOT_DIR/scripts/lib/jupyter-tools.sh"
 
-lumen_require_commands
+kuusi_require_commands
 
 cd "$ROOT_DIR"
 
-if [[ ! -d packages/lumen-kernel/dist ]]; then
+if [[ ! -d packages/kuusi-kernel/dist ]]; then
   npm install
   npm run build:extension
 fi
 
-npm run watch --workspace=lumen-kernel &
+npm run watch --workspace=kuusi-kernel &
 PIDS=($!)
-npm run watch --workspace=jupyterlab-lumen &
+npm run watch --workspace=jupyterlab-kuusi &
 PIDS+=($!)
 (
-  cd packages/jupyterlab-lumen
-  "$LUMEN_JUPYTER" labextension watch .
+  cd packages/jupyterlab-kuusi
+  "$KUUSI_JUPYTER" labextension watch .
 ) &
 PIDS+=($!)
 

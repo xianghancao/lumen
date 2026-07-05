@@ -1,0 +1,228 @@
+{
+  "title": "jupyterlab-kuusi",
+  "description": "jupyterlab-kuusi settings.",
+  "jupyter.lab.toolbars": {
+    "Notebook": [
+      {
+        "name": "open-mindmap",
+        "command": "jupyterlab-kuusi:open-notebook-mindmap",
+        "label": "Kuusi",
+        "rank": 41
+      }
+    ],
+    "Kuusi Mind Map": [
+      { "name": "save", "rank": 10 },
+      { "name": "insert", "rank": 20 },
+      { "name": "cut", "rank": 21 },
+      { "name": "copy", "rank": 22 },
+      { "name": "paste", "rank": 23 },
+      { "name": "run", "rank": 30 },
+      { "name": "interrupt", "rank": 31 },
+      { "name": "restart", "rank": 32 },
+      { "name": "restart-and-run", "rank": 33 },
+      { "name": "cellType", "rank": 40 },
+      { "name": "spacer", "type": "spacer", "rank": 100 },
+      { "name": "kernelName", "rank": 1000 },
+      { "name": "executionProgress", "rank": 1002 }
+    ]
+  },
+  "jupyter.lab.transform": true,
+  "type": "object",
+  "properties": {
+    "toolbar": {
+      "title": "Kuusi mind map toolbar items",
+      "description": "Note: To disable a toolbar item,\ncopy it to User Preferences and add the\n\"disabled\" key.",
+      "items": {
+        "$ref": "#/definitions/toolbarItem"
+      },
+      "type": "array",
+      "default": []
+    },
+    "theme": {
+      "title": "Mind map theme",
+      "type": "string",
+      "enum": ["classic", "soft", "contrast"],
+      "default": "classic"
+    },
+    "font": {
+      "title": "Mind map font",
+      "type": "string",
+      "enum": [
+        "notebook",
+        "system-ui",
+        "arial",
+        "helvetica",
+        "segoe-ui",
+        "verdana",
+        "georgia",
+        "times",
+        "palatino",
+        "garamond",
+        "cambria"
+      ],
+      "default": "notebook"
+    },
+    "fontSize": {
+      "title": "Mind map font size",
+      "type": "string",
+      "enum": ["notebook", "small", "medium", "large", "extra-large"],
+      "default": "notebook"
+    },
+    "layoutDensity": {
+      "title": "Node layout spacing",
+      "type": "string",
+      "enum": ["compact", "normal", "loose"],
+      "default": "normal"
+    },
+    "siblingGap": {
+      "title": "Sibling node boundary gap",
+      "description": "Boundary distance between sibling nodes in the mind map layout.",
+      "type": "number",
+      "minimum": 0,
+      "maximum": 100,
+      "default": 22
+    },
+    "childGap": {
+      "title": "Child node boundary gap",
+      "description": "Boundary distance between parent and child nodes in the mind map layout.",
+      "type": "number",
+      "minimum": 0,
+      "maximum": 160,
+      "default": 52
+    },
+    "treeDirection": {
+      "title": "Tree direction",
+      "type": "string",
+      "enum": ["TB", "BT", "LR", "RL"],
+      "default": "LR"
+    },
+    "background": {
+      "title": "Canvas background",
+      "type": "string",
+      "enum": [
+        "default",
+        "plain",
+        "grid",
+        "dots",
+        "gradient",
+        "business-blue",
+        "eye-care",
+        "newspaper",
+        "sea-blue",
+        "tech-blue",
+        "grass-green",
+        "avocado",
+        "stone-gray",
+        "red-wall",
+        "custom"
+      ],
+      "default": "default"
+    },
+    "backgroundColor": {
+      "title": "Custom canvas background color",
+      "type": "string",
+      "default": "#d6ecff"
+    },
+    "appearance": {
+      "title": "Line and border appearance",
+      "type": "object",
+      "default": {},
+      "additionalProperties": false,
+      "properties": {
+        "edgeStyle": {
+          "type": "string",
+          "enum": [
+            "solid",
+            "dashed",
+            "dotted",
+            "long-dash",
+            "dash-dot",
+            "dense-dot",
+            "sparse-dash"
+          ],
+          "default": "solid"
+        },
+        "edgeLinecap": {
+          "type": "string",
+          "enum": ["round", "butt", "square"],
+          "default": "butt"
+        },
+        "edgeWidth": {
+          "type": "string",
+          "default": "3pt"
+        },
+        "edgeColor": {
+          "type": "string",
+          "default": ""
+        },
+        "nodeBorderStyle": {
+          "type": "string",
+          "enum": ["solid", "dashed", "dotted"],
+          "default": "solid"
+        },
+        "nodeBorderWidth": {
+          "type": "string",
+          "default": "1px"
+        },
+        "nodeBorderColor": {
+          "type": "string",
+          "default": ""
+        }
+      }
+    }
+  },
+  "additionalProperties": false,
+  "definitions": {
+    "toolbarItem": {
+      "properties": {
+        "name": {
+          "title": "Unique name",
+          "type": "string"
+        },
+        "args": {
+          "title": "Command arguments",
+          "type": "object"
+        },
+        "command": {
+          "title": "Command id",
+          "type": "string",
+          "default": ""
+        },
+        "disabled": {
+          "title": "Whether the item is ignored or not",
+          "type": "boolean",
+          "default": false
+        },
+        "icon": {
+          "title": "Item icon id",
+          "description": "If defined, it will override the command icon",
+          "type": "string"
+        },
+        "label": {
+          "title": "Item label",
+          "description": "If defined, it will override the command label",
+          "type": "string"
+        },
+        "caption": {
+          "title": "Item caption",
+          "description": "If defined, it will override the command caption",
+          "type": "string"
+        },
+        "type": {
+          "title": "Item type",
+          "type": "string",
+          "enum": ["command", "spacer"]
+        },
+        "rank": {
+          "title": "Item rank",
+          "type": "number",
+          "minimum": 0,
+          "default": 50
+        }
+      },
+      "required": ["name"],
+      "additionalProperties": false,
+      "type": "object"
+    }
+  }
+}

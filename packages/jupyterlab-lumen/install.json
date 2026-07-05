@@ -1,5 +1,0 @@
-{
-  "packageManager": "npm@10",
-  "packageName": "jupyterlab-lumen",
-  "uninstallInstructions": "pip uninstall jupyterlab-lumen"
-}

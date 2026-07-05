@@ -1,0 +1,5 @@
+{
+  "packageManager": "npm@10",
+  "packageName": "jupyterlab-kuusi",
+  "uninstallInstructions": "pip uninstall jupyterlab-kuusi"
+}

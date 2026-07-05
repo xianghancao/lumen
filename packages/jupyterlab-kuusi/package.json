@@ -1,0 +1,67 @@
+{
+  "name": "jupyterlab-kuusi",
+  "version": "0.2.1",
+  "description": "Jupyter-native notebook mind map view for JupyterLab",
+  "keywords": [
+    "jupyter",
+    "jupyterlab",
+    "jupyterlab-extension",
+    "notebook",
+    "mindmap",
+    "kuusi"
+  ],
+  "license": "BSD-3-Clause",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/xianghancao/lumen.git"
+  },
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "style": "style/index.css",
+  "files": [
+    "lib/**/*",
+    "style/**/*",
+    "schema/*.json"
+  ],
+  "scripts": {
+    "build": "npm run build:kernel && npm run build:lib && npm run build:labextension:dev",
+    "build:release": "npm run build:kernel && npm run build:lib && npm run build:labextension",
+    "build:kernel": "npm run build --workspace=kuusi-kernel",
+    "build:lib": "tsc -p tsconfig.json",
+    "build:labextension": "jupyter labextension build .",
+    "build:labextension:dev": "jupyter labextension build --development True .",
+    "install:extension": "npm run build:kernel && npm run build:lib && npm run build:labextension:dev",
+    "clean": "npm run clean:lib && rimraf jupyterlab_kuusi/labextension",
+    "clean:lib": "rimraf lib tsconfig.tsbuildinfo",
+    "watch": "tsc -w -p tsconfig.json",
+    "watch:labextension": "jupyter labextension watch ."
+  },
+  "dependencies": {
+    "@jupyterlab/application": "^4.3.5",
+    "@jupyterlab/apputils": "^4.3.5",
+    "@jupyterlab/cells": "^4.3.5",
+    "@jupyterlab/codeeditor": "^4.3.5",
+    "@jupyterlab/docmanager": "^4.3.5",
+    "@jupyterlab/docregistry": "^4.3.5",
+    "@jupyterlab/nbformat": "^4.3.5",
+    "@jupyterlab/notebook": "^4.3.5",
+    "@jupyterlab/rendermime": "^4.3.5",
+    "@jupyterlab/services": "^7.3.5",
+    "@jupyterlab/settingregistry": "^4.3.5",
+    "@jupyterlab/translation": "^4.3.5",
+    "@jupyterlab/ui-components": "^4.3.5",
+    "@lumino/disposable": "^2.1.2",
+    "@lumino/widgets": "^2.5.0",
+    "kuusi-kernel": "0.2.1"
+  },
+  "devDependencies": {
+    "@jupyterlab/builder": "^4.3.5",
+    "rimraf": "^6.0.1",
+    "typescript": "^5.9.3"
+  },
+  "jupyterlab": {
+    "extension": true,
+    "outputDir": "jupyterlab_kuusi/labextension",
+    "schemaDir": "schema"
+  }
+}

@@ -1,20 +1,20 @@
-# Lumen
+# Kuusi
 
-Jupyter-native **notebook mind map**: rearrange `.ipynb` cells on a spatial canvas by markdown heading hierarchy, using **Jupyter's own cell renderers** (CodeCell / MarkdownCell — not a custom rich-text editor).
+*Kuusi* (Finnish for spruce) — Jupyter-native **notebook mind map**: rearrange `.ipynb` cells on a spatial canvas by markdown heading hierarchy, using **Jupyter's own cell renderers** (CodeCell / MarkdownCell — not a custom rich-text editor).
 
 <p align="center">
-  <img src="docs/assets/lumen-ui-overview.gif" alt="Lumen mind map UI overview" width="720"/>
+  <img src="docs/assets/kuusi-ui-overview.gif" alt="Kuusi mind map UI overview" width="720"/>
 </p>
 
-> **Demo:** The GIF above was recorded with [`examples/example.ipynb`](examples/example.ipynb) open in **Lumen Mind Map**.
+> **Demo:** The GIF above was recorded with [`examples/example.ipynb`](examples/example.ipynb) open in **Kuusi Mind Map**.
 
 ## Version
 
 | Component | Version |
 |-----------|---------|
-| **Lumen** | `0.2.1` |
-| `lumen-kernel` | `0.2.1` |
-| `jupyterlab-lumen` | `0.2.1` |
+| **Kuusi** | `0.2.1` |
+| `kuusi-kernel` | `0.2.1` |
+| `jupyterlab-kuusi` | `0.2.1` |
 
 See [CHANGELOG.md](./CHANGELOG.md) for release notes.
 
@@ -25,7 +25,7 @@ See [CHANGELOG.md](./CHANGELOG.md) for release notes.
 - **Empty node insertion**: Tab / Enter create blank markdown cells with correct outline placement (no `markdown cell N` placeholder)
 - **Drag-and-drop** reordering with drop zones (before / inside / after)
 - **Two-way notebook sync**: same `.ipynb` model; structural edits update the notebook
-- **Notebook → Lumen focus**: selecting a cell in the standard ipynb editor pans Lumen to the matching node
+- **Notebook → Kuusi focus**: selecting a cell in the standard ipynb editor pans Kuusi to the matching node
 - **Tree direction**: top-bottom, bottom-top, left-right, right-left
 - **Style themes**: Classic, Soft, Contrast
 - **Font**: notebook default plus sans-serif and serif families; adjustable size (Small → Extra Large)
@@ -49,7 +49,7 @@ See [CHANGELOG.md](./CHANGELOG.md) for release notes.
 | **Node.js + npm** | Required to build from source (see below) |
 | **Git** | Required to clone the monorepo |
 
-> **Note:** Lumen is not published on PyPI yet. Install from this repository for now.
+> **Note:** Kuusi is not published on PyPI yet. Install from this repository for now.
 
 ### Install from source (recommended)
 
@@ -57,73 +57,73 @@ Clone the repo, activate the Python environment where JupyterLab is installed, t
 
 ```bash
 git clone https://github.com/xianghancao/lumen.git
-cd lumen
+cd kuusi
 npm run jlab:install
 jupyter lab
 ```
 
-`npm run jlab:install` builds the extension, runs `pip install -e packages/jupyterlab-lumen`, and rebuilds JupyterLab.
+`npm run jlab:install` builds the extension, runs `pip install -e packages/jupyterlab-kuusi`, and rebuilds JupyterLab.
 
 Use a specific Python/Jupyter if they are not first on your `PATH`:
 
 ```bash
-LUMEN_PYTHON=/path/to/python LUMEN_JUPYTER=/path/to/jupyter npm run jlab:install
+KUUSI_PYTHON=/path/to/python KUUSI_JUPYTER=/path/to/jupyter npm run jlab:install
 ```
 
 ### Manual install
 
 ```bash
 git clone https://github.com/xianghancao/lumen.git
-cd lumen
+cd kuusi
 
 npm install
 npm run build:extension
 
-python -m pip install -e packages/jupyterlab-lumen
+python -m pip install -e packages/jupyterlab-kuusi
 jupyter lab build
 
 jupyter lab
 ```
 
-Run these commands from the **repository root** so the `lumen-kernel` workspace package is available.
+Run these commands from the **repository root** so the `kuusi-kernel` workspace package is available.
 
 ### Verify
 
 ```bash
 npm run jlab:verify
 # or
-jupyter labextension list | grep -i lumen
+jupyter labextension list | grep -i kuusi
 ```
 
-You should see `jupyterlab-lumen` enabled.
+You should see `jupyterlab-kuusi` enabled.
 
 ### Uninstall
 
 ```bash
-python -m pip uninstall jupyterlab-lumen
+python -m pip uninstall jupyterlab-kuusi
 jupyter lab build
 ```
 
-### Open Lumen
+### Open Kuusi
 
 Open any `.ipynb` (try [`examples/example.ipynb`](examples/example.ipynb)), then either:
 
-- Click **Lumen** in the notebook toolbar, or
-- **Right-click the file → Open With → Lumen Mind Map**
+- Click **Kuusi** in the notebook toolbar, or
+- **Right-click the file → Open With → Kuusi Mind Map**
 
-You can keep the classic notebook view and Lumen open on the same file side by side.
+You can keep the classic notebook view and Kuusi open on the same file side by side.
 
 ## Quick start
 
-If you already installed Lumen:
+If you already installed Kuusi:
 
 ```bash
 jupyter lab
 ```
 
-Then open `examples/example.ipynb` with **Lumen Mind Map** as described above.
+Then open `examples/example.ipynb` with **Kuusi Mind Map** as described above.
 
-## Using Lumen
+## Using Kuusi
 
 ### Header (row 1)
 
@@ -133,7 +133,7 @@ Jupyter document toolbar: save, insert, cut/copy/paste, run, kernel, cell type, 
 
 | Area | Controls |
 |------|----------|
-| **Left** | **Add Mind Map** (+), **Lumen** (version menu), **Tree**, **Style**, **Font**, **Line**, **Border**, **Layout**, **Background**, **Guide** |
+| **Left** | **Add Mind Map** (+), **Kuusi** (version menu), **Tree**, **Style**, **Font**, **Line**, **Border**, **Layout**, **Background**, **Guide** |
 | **Right** | Markdown **format** toolbar (visible in edit mode), see below |
 
 #### Left toolbar
@@ -141,7 +141,7 @@ Jupyter document toolbar: save, insert, cut/copy/paste, run, kernel, cell type, 
 | Control | What it does |
 |---------|----------------|
 | **+** | Create a new notebook in the same folder and open it as a mind map |
-| **Lumen** | Current version, latest version (cached when offline), GitHub repository |
+| **Kuusi** | Current version, latest version (cached when offline), GitHub repository |
 | **Tree** | Layout direction: ↓ ↑ → ← |
 | **Style** | Mind map theme: Classic / Soft / Contrast |
 | **Font** | Mind map typeface (notebook default, sans-serif, serif) and size (Small → Extra Large) |
@@ -192,8 +192,8 @@ All of the above (except zoom and fullscreen) are **saved automatically** and re
 
 ```
 .ipynb (shared INotebookModel)
-    → lumen-kernel: heading outline tree + dagre layout
-    → jupyterlab-lumen: canvas with native Jupyter cell widgets
+    → kuusi-kernel: heading outline tree + dagre layout
+    → jupyterlab-kuusi: canvas with native Jupyter cell widgets
 ```
 
 No Tiptap, React Flow, or separate `.lumen.json` sidecar in this line.
@@ -279,8 +279,8 @@ npm run jlab:verify
 
 ```
 packages/
-  lumen-kernel/         # outline tree, layout, navigation
-  jupyterlab-lumen/     # JupyterLab extension + UI
+  kuusi-kernel/         # outline tree, layout, navigation
+  jupyterlab-kuusi/     # JupyterLab extension + UI
 docs/
   assets/               # UI overview SVG, demo GIF (optional)
 examples/
