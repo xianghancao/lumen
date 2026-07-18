@@ -51,3 +51,5 @@ venv/
 .turbo/
 coverage/
 .yarn/
+yarn.lock
+

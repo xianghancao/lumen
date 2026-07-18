@@ -29,6 +29,10 @@ jobs:
   build:
     name: Build wheel
     runs-on: ubuntu-latest
+    env:
+      # jupyter labextension build uses jlpm; CI immutable mode fails when
+      # the npm-managed monorepo yarn.lock is slightly out of date.
+      YARN_ENABLE_IMMUTABLE_INSTALLS: "false"
     steps:
       - uses: actions/checkout@v5
 
