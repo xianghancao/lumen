@@ -101,7 +101,8 @@ First public release of the Jupyter-native mind map stack (`kuusi-kernel` + `jup
 
 Pre-0.2.0 prototypes are not part of this changelog.
 
-[Unreleased]: https://github.com/xianghancao/kuusi/compare/v0.2.2...HEAD
+[Unreleased]: https://github.com/xianghancao/kuusi/compare/v0.2.3...HEAD
+[0.2.3]: https://github.com/xianghancao/kuusi/releases/tag/v0.2.3
 [0.2.2]: https://github.com/xianghancao/kuusi/releases/tag/v0.2.2
 [0.2.1]: https://github.com/xianghancao/kuusi/releases/tag/v0.2.1
 [0.2.0]: https://github.com/xianghancao/kuusi/releases/tag/v0.2.0
