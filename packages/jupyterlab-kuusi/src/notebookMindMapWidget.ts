@@ -43,6 +43,7 @@ import {
   appendEdgeArrowDefs,
   createAppearanceToolbar,
   DEFAULT_APPEARANCE,
+  parseEdgeWidthPx,
   type AppearanceSettings,
 } from "./appearanceToolbar";
 import { createLayoutToolbar } from "./layoutToolbar";
@@ -1943,24 +1944,20 @@ export class NotebookMindMapWidget extends Widget {
 
     const svg = this._edgesSvg;
     let defs = svg.querySelector("defs");
-    const paths = Array.from(svg.querySelectorAll(":scope > path.jp-KuusiNotebookMindMap-edge"));
+    const paths = Array.from(
+      svg.querySelectorAll(":scope > path.jp-KuusiNotebookMindMap-edge"),
+    );
+    const direction = this._appearanceSettings.edgeArrowDirection;
+    const style = this._appearanceSettings.edgeArrowStyle;
+    const edgeWidth = this._appearanceSettings.edgeWidth;
+    const markerKey = `${direction}:${style}:${edgeWidth}`;
+    const edgeWidthPx = parseEdgeWidthPx(edgeWidth);
 
-    if (!defs) {
+    if (!defs || svg.dataset.kuusiMarkerKey !== markerKey) {
+      defs?.remove();
       const markers = appendEdgeArrowDefs(svg, this._appearanceSettings);
       this._edgeMarkerAttrs = markers;
-      svg.dataset.kuusiMarkerKey = `${this._appearanceSettings.edgeArrowDirection}:${this._appearanceSettings.edgeArrowStyle}`;
-    } else {
-      // Refresh marker defs when arrow settings change.
-      const direction = this._appearanceSettings.edgeArrowDirection;
-      const style = this._appearanceSettings.edgeArrowStyle;
-      const markerKey = `${direction}:${style}`;
-
-      if (svg.dataset.kuusiMarkerKey !== markerKey) {
-        defs.remove();
-        const markers = appendEdgeArrowDefs(svg, this._appearanceSettings);
-        this._edgeMarkerAttrs = markers;
-        svg.dataset.kuusiMarkerKey = markerKey;
-      }
+      svg.dataset.kuusiMarkerKey = markerKey;
     }
 
     const markers = this._edgeMarkerAttrs ?? {};
@@ -1989,6 +1986,8 @@ export class NotebookMindMapWidget extends Widget {
       }
 
       path.setAttribute("d", d);
+      // Keep stroke width in SVG user units so markers stay aligned under zoom.
+      path.setAttribute("stroke-width", String(edgeWidthPx));
 
       if (markers.markerStart) {
         path.setAttribute("marker-start", markers.markerStart);

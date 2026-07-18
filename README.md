@@ -12,9 +12,9 @@
 
 | Component | Version |
 |-----------|---------|
-| **Kuusi** | `0.2.2` |
-| `kuusi-kernel` | `0.2.2` |
-| `jupyterlab-kuusi` | `0.2.2` |
+| **Kuusi** | `0.2.3` |
+| `kuusi-kernel` | `0.2.3` |
+| `jupyterlab-kuusi` | `0.2.3` |
 
 See [CHANGELOG.md](./CHANGELOG.md) for release notes.
 
@@ -46,61 +46,25 @@ See [CHANGELOG.md](./CHANGELOG.md) for release notes.
 |-----------|---------|
 | **JupyterLab** | 4.x |
 | **Python** | 3.9+ |
-| **Node.js + npm** | Only required when building from source |
-| **Git** | Required to clone the monorepo |
 
-### Install from PyPI (recommended)
+### Install with pip
 
 ```bash
-python -m pip install jupyterlab-kuusi
+pip install jupyterlab-kuusi
 jupyter lab
 ```
 
-Requires JupyterLab 4. No Node.js needed for the wheel install.
-
-> If `pip` cannot find the package yet, the first PyPI release may still be pending — use [Install from source](#install-from-source) below, or see [Publishing to PyPI](#publishing-to-pypi).
-
-### Install from source
-
-Clone the repo, activate the Python environment where JupyterLab is installed, then run:
+Upgrade to the latest release:
 
 ```bash
-git clone https://github.com/xianghancao/Kuusi.git
-cd Kuusi
-npm run jlab:install
-jupyter lab
+pip install -U jupyterlab-kuusi
 ```
 
-`npm run jlab:install` builds the extension, runs `pip install -e packages/jupyterlab-kuusi`, and rebuilds JupyterLab.
-
-Use a specific Python/Jupyter if they are not first on your `PATH`:
-
-```bash
-KUUSI_PYTHON=/path/to/python KUUSI_JUPYTER=/path/to/jupyter npm run jlab:install
-```
-
-### Manual install
-
-```bash
-git clone https://github.com/xianghancao/Kuusi.git
-cd Kuusi
-
-npm install
-npm run build:extension
-
-python -m pip install -e packages/jupyterlab-kuusi
-jupyter lab build
-
-jupyter lab
-```
-
-Run these commands from the **repository root** so the `kuusi-kernel` workspace package is available.
+No Node.js is required for the PyPI install.
 
 ### Verify
 
 ```bash
-npm run jlab:verify
-# or
 jupyter labextension list | grep -i kuusi
 ```
 
@@ -109,8 +73,7 @@ You should see `jupyterlab-kuusi` enabled.
 ### Uninstall
 
 ```bash
-python -m pip uninstall jupyterlab-kuusi
-jupyter lab build
+pip uninstall jupyterlab-kuusi
 ```
 
 ### Open Kuusi
@@ -121,6 +84,38 @@ Open any `.ipynb` (try [`examples/example.ipynb`](examples/example.ipynb)), then
 - **Right-click the file → Open With → Kuusi Mind Map**
 
 You can keep the classic notebook view and Kuusi open on the same file side by side.
+
+### Install from source (developers)
+
+For local development or contributing, you need **Node.js + npm** and **Git**. Clone the repo, activate the Python environment where JupyterLab is installed, then run:
+
+```bash
+git clone https://github.com/xianghancao/Kuusi.git
+cd Kuusi
+npm run jlab:install
+jupyter lab
+```
+
+`npm run jlab:install` builds the extension, installs it with pip, and rebuilds JupyterLab.
+
+Use a specific Python/Jupyter if they are not first on your `PATH`:
+
+```bash
+KUUSI_PYTHON=/path/to/python KUUSI_JUPYTER=/path/to/jupyter npm run jlab:install
+```
+
+Manual steps:
+
+```bash
+git clone https://github.com/xianghancao/Kuusi.git
+cd Kuusi
+npm install
+npm run build:extension
+pip install -e packages/jupyterlab-kuusi
+jupyter lab
+```
+
+Run these from the **repository root** so the `kuusi-kernel` workspace package is available. See [CONTRIBUTING.md](./CONTRIBUTING.md) for the full workflow.
 
 ## Quick start
 
@@ -318,7 +313,7 @@ You can also run the workflow manually via **Actions → Publish PyPI → Run wo
 After it succeeds:
 
 ```bash
-python -m pip install -U jupyterlab-kuusi
+pip install -U jupyterlab-kuusi
 ```
 
 ## Repository layout

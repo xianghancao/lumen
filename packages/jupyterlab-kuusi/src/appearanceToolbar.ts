@@ -106,6 +106,51 @@ const NODE_BORDER_RADII = ["4px", "8px", "12px", "16px", "24px", "32px"];
 
 const SVG_NS = "http://www.w3.org/2000/svg";
 
+/** Convert appearance edge width (e.g. `3pt`) to SVG user-space pixels. */
+export const parseEdgeWidthPx = (width: string): number => {
+  const match = width.trim().match(/^([\d.]+)\s*(pt|px|mm)?$/i);
+
+  if (!match) {
+    return 4;
+  }
+
+  const value = Number.parseFloat(match[1]);
+
+  if (!Number.isFinite(value) || value <= 0) {
+    return 4;
+  }
+
+  const unit = (match[2] ?? "px").toLowerCase();
+
+  if (unit === "pt") {
+    return value * (96 / 72);
+  }
+
+  if (unit === "mm") {
+    return value * (96 / 25.4);
+  }
+
+  return value;
+};
+
+const tipRefXForStyle = (style: EdgeArrowStyle): string => {
+  if (style === "circle") {
+    return "8.5";
+  }
+
+  if (style === "diamond") {
+    return "9.5";
+  }
+
+  if (style === "open") {
+    return "9";
+  }
+
+  // triangle / stealth — sit slightly inside the tip so the stroke
+  // terminates under the filled head instead of floating past it.
+  return "9";
+};
+
 const appendArrowShape = (
   marker: SVGMarkerElement,
   style: EdgeArrowStyle,
@@ -147,16 +192,23 @@ const createEdgeMarker = (
   id: string,
   style: EdgeArrowStyle,
   atStart: boolean,
+  edgeWidthPx: number,
 ): SVGMarkerElement => {
   const marker = document.createElementNS(SVG_NS, "marker");
+  // userSpaceOnUse keeps arrows locked to the path under CSS zoom/pan.
+  // strokeWidth + CSS `pt` stroke often drifts when the scene is scaled.
+  const size = Math.max(10, edgeWidthPx * 3.6);
+  const tipRefX = tipRefXForStyle(style);
+
   marker.setAttribute("id", id);
   marker.setAttribute("viewBox", "0 0 10 10");
-  marker.setAttribute("refX", atStart ? "0" : "10");
+  marker.setAttribute("refX", tipRefX);
   marker.setAttribute("refY", "5");
-  marker.setAttribute("markerWidth", "3.2");
-  marker.setAttribute("markerHeight", "3.2");
-  marker.setAttribute("markerUnits", "strokeWidth");
+  marker.setAttribute("markerWidth", String(size));
+  marker.setAttribute("markerHeight", String(size));
+  marker.setAttribute("markerUnits", "userSpaceOnUse");
   marker.setAttribute("orient", atStart ? "auto-start-reverse" : "auto");
+  marker.setAttribute("overflow", "visible");
   appendArrowShape(marker, style);
   return marker;
 };
@@ -164,7 +216,10 @@ const createEdgeMarker = (
 /** Append SVG marker defs for the current arrow settings; returns marker URLs. */
 export const appendEdgeArrowDefs = (
   svg: SVGSVGElement,
-  settings: Pick<AppearanceSettings, "edgeArrowDirection" | "edgeArrowStyle">,
+  settings: Pick<
+    AppearanceSettings,
+    "edgeArrowDirection" | "edgeArrowStyle" | "edgeWidth"
+  >,
 ): { markerStart?: string; markerEnd?: string } => {
   const direction = settings.edgeArrowDirection;
   const style = settings.edgeArrowStyle;
@@ -178,18 +233,19 @@ export const appendEdgeArrowDefs = (
   }
 
   const uid = svg.dataset.kuusiMarkerUid;
+  const edgeWidthPx = parseEdgeWidthPx(settings.edgeWidth);
   const defs = document.createElementNS(SVG_NS, "defs");
   const result: { markerStart?: string; markerEnd?: string } = {};
 
   if (direction === "end" || direction === "both") {
     const id = `${uid}-end`;
-    defs.appendChild(createEdgeMarker(id, style, false));
+    defs.appendChild(createEdgeMarker(id, style, false, edgeWidthPx));
     result.markerEnd = `url(#${id})`;
   }
 
   if (direction === "start" || direction === "both") {
     const id = `${uid}-start`;
-    defs.appendChild(createEdgeMarker(id, style, true));
+    defs.appendChild(createEdgeMarker(id, style, true, edgeWidthPx));
     result.markerStart = `url(#${id})`;
   }
 

@@ -104,14 +104,22 @@ const applyLatestVersionState = (
   latestValueEl: HTMLElement,
   latest: string,
   t: KuusiTranslator,
+  updateBadge: HTMLElement,
+  trigger: HTMLButtonElement,
   cached = false,
 ): void => {
   latestValueEl.textContent = `v${latest}`;
   latestValueEl.classList.remove("is-update-available", "is-up-to-date");
 
-  if (compareVersions(latest, KUUSI_VERSION) > 0) {
+  const updateAvailable = compareVersions(latest, KUUSI_VERSION) > 0;
+
+  if (updateAvailable) {
     latestValueEl.classList.add("is-update-available");
     latestValueEl.title = t.newVersionAvailable();
+    updateBadge.hidden = false;
+    updateBadge.classList.add("is-visible");
+    trigger.title = t.newVersionAvailable();
+    trigger.setAttribute("aria-label", `Kuusi — ${t.newVersionAvailable()}`);
     return;
   }
 
@@ -119,16 +127,29 @@ const applyLatestVersionState = (
   latestValueEl.title = cached
     ? `${t.upToDate()} (${t.latestVersion()} cached)`
     : t.upToDate();
+  updateBadge.hidden = true;
+  updateBadge.classList.remove("is-visible");
+  trigger.title = "Kuusi";
+  trigger.setAttribute("aria-label", "Kuusi");
 };
 
 const refreshLatestVersion = (
   latestValueEl: HTMLElement,
   t: KuusiTranslator,
+  updateBadge: HTMLElement,
+  trigger: HTMLButtonElement,
 ): void => {
   const cached = readVersionCache();
 
   if (cached) {
-    applyLatestVersionState(latestValueEl, cached.version, t, true);
+    applyLatestVersionState(
+      latestValueEl,
+      cached.version,
+      t,
+      updateBadge,
+      trigger,
+      true,
+    );
   } else {
     latestValueEl.textContent = "—";
     latestValueEl.classList.remove("is-update-available", "is-up-to-date");
@@ -150,7 +171,14 @@ const refreshLatestVersion = (
       }
 
       writeVersionCache(latest);
-      applyLatestVersionState(latestValueEl, latest, t, false);
+      applyLatestVersionState(
+        latestValueEl,
+        latest,
+        t,
+        updateBadge,
+        trigger,
+        false,
+      );
     })
     .catch(() => {
       if (!cached) {
@@ -195,6 +223,12 @@ export const createProductMenu = (
   trigger.setAttribute("aria-label", "Kuusi");
   trigger.title = "Kuusi";
   applyKuusiLogo(trigger, "header");
+
+  const updateBadge = document.createElement("span");
+  updateBadge.className = "jp-KuusiProductDropdown-updateBadge";
+  updateBadge.hidden = true;
+  updateBadge.setAttribute("aria-hidden", "true");
+  trigger.appendChild(updateBadge);
 
   const menu = document.createElement("div");
   menu.className =
@@ -243,7 +277,7 @@ export const createProductMenu = (
 
     if (!isOpen) {
       menu.classList.add("is-open");
-      refreshLatestVersion(latestRow.valueEl, t);
+      refreshLatestVersion(latestRow.valueEl, t, updateBadge, trigger);
     }
   });
 
@@ -252,5 +286,7 @@ export const createProductMenu = (
   });
 
   wrapper.append(trigger, menu);
+  // Show the update badge as soon as the header mounts (uses cache / network).
+  refreshLatestVersion(latestRow.valueEl, t, updateBadge, trigger);
   return wrapper;
 };

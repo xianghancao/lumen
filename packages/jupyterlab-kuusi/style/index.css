@@ -66,6 +66,7 @@
 .jp-KuusiNotebookMindMap-header-title.jp-KuusiLogo {
   color: #2f5d3a;
   font-weight: 800;
+  position: relative;
 }
 
 .jp-mod-dark .jp-KuusiNotebookMindMap-header-title.jp-KuusiLogo {
@@ -79,6 +80,24 @@
 
 .jp-mod-dark .jp-KuusiNotebookMindMap-header-title.jp-KuusiLogo:hover {
   color: #b8d8b6;
+}
+
+.jp-KuusiProductDropdown-updateBadge {
+  background: var(--jp-error-color1, #e53935);
+  border: 1.5px solid var(--jp-layout-color1, #fff);
+  border-radius: 50%;
+  box-sizing: border-box;
+  display: none;
+  height: 8px;
+  pointer-events: none;
+  position: absolute;
+  right: -2px;
+  top: -2px;
+  width: 8px;
+}
+
+.jp-KuusiProductDropdown-updateBadge.is-visible {
+  display: block;
 }
 
 .jp-KuusiNotebookOpenButton:hover .jp-ToolbarButtonComponent-label {
@@ -1960,7 +1979,8 @@
   stroke: var(--kuusi-edge-color);
   stroke-linecap: round;
   stroke-linejoin: round;
-  stroke-width: var(--kuusi-edge-width);
+  /* stroke-width is set as an SVG attribute in user units so arrow
+     markers stay aligned under canvas zoom/pan. */
 }
 
 .jp-KuusiMindMapNotebook-scene[data-kuusi-edge-style="dashed"]

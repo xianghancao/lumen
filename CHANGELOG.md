@@ -6,9 +6,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.2.3] - 2026-07-18
+
 ### Added
 
+- Red update badge on the Kuusi logo when the installed version is behind the latest release
 - GitHub Actions workflow to publish `jupyterlab-kuusi` to PyPI on `v*` tags (Trusted Publishing)
+
+### Changed
+
+- Install docs lead with `pip install jupyterlab-kuusi` (PyPI); source install is for developers
+- Edge arrow markers use SVG user-space units so arrows stay attached to connectors under zoom/pan
+
+### Fixed
+
+- Arrowheads detaching from connector lines (wrong start `refX` + `strokeWidth` markers with CSS `pt` widths)
+- Labextension CI build failing on Yarn immutable lockfile checks
 
 ## [0.2.2] - 2026-07-18
 
