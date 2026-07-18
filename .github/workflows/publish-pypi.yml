@@ -1,0 +1,83 @@
+# Publish jupyterlab-kuusi to PyPI on version tags.
+#
+# One-time setup on https://pypi.org:
+#   1. Log in → Publishing → Add a new pending publisher (or project → Collaborators)
+#   2. PyPI project name: jupyterlab-kuusi
+#   3. Owner: xianghancao
+#   4. Repository name: Kuusi   (must match GitHub exactly)
+#   5. Workflow name: publish-pypi.yml
+#   6. Environment name: pypi
+#
+# Then create a matching GitHub Environment named "pypi" (Settings → Environments).
+# Optional: add a protection rule requiring approval before publish.
+#
+# Release flow:
+#   bump versions → commit → git tag vX.Y.Z → git push origin vX.Y.Z
+
+name: Publish PyPI
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build wheel
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          npm install
+          python -m pip install --upgrade pip
+          python -m pip install build jupyterlab
+
+      - name: Version sync check
+        run: npm run check:versions
+
+      - name: Production labextension
+        run: npm run build:release
+
+      - name: Build sdist and wheel
+        working-directory: packages/jupyterlab-kuusi
+        run: python -m build
+
+      - name: Upload distributions
+        uses: actions/upload-artifact@v4
+        with:
+          name: python-package-distributions
+          path: packages/jupyterlab-kuusi/dist/
+
+  publish:
+    name: Publish to PyPI
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/project/jupyterlab-kuusi/
+    permissions:
+      id-token: write
+    steps:
+      - name: Download distributions
+        uses: actions/download-artifact@v4
+        with:
+          name: python-package-distributions
+          path: dist/
+
+      - name: Publish package distributions to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1

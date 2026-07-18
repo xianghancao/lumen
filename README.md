@@ -46,18 +46,27 @@ See [CHANGELOG.md](./CHANGELOG.md) for release notes.
 |-----------|---------|
 | **JupyterLab** | 4.x |
 | **Python** | 3.9+ |
-| **Node.js + npm** | Required to build from source (see below) |
+| **Node.js + npm** | Only required when building from source |
 | **Git** | Required to clone the monorepo |
 
-> **Note:** Kuusi is not published on PyPI yet. Install from this repository for now.
+### Install from PyPI (recommended)
 
-### Install from source (recommended)
+```bash
+python -m pip install jupyterlab-kuusi
+jupyter lab
+```
+
+Requires JupyterLab 4. No Node.js needed for the wheel install.
+
+> If `pip` cannot find the package yet, the first PyPI release may still be pending — use [Install from source](#install-from-source) below, or see [Publishing to PyPI](#publishing-to-pypi).
+
+### Install from source
 
 Clone the repo, activate the Python environment where JupyterLab is installed, then run:
 
 ```bash
-git clone https://github.com/xianghancao/kuusi.git
-cd kuusi
+git clone https://github.com/xianghancao/Kuusi.git
+cd Kuusi
 npm run jlab:install
 jupyter lab
 ```
@@ -73,8 +82,8 @@ KUUSI_PYTHON=/path/to/python KUUSI_JUPYTER=/path/to/jupyter npm run jlab:install
 ### Manual install
 
 ```bash
-git clone https://github.com/xianghancao/kuusi.git
-cd kuusi
+git clone https://github.com/xianghancao/Kuusi.git
+cd Kuusi
 
 npm install
 npm run build:extension
@@ -273,6 +282,43 @@ Verify the extension:
 
 ```bash
 npm run jlab:verify
+```
+
+## Publishing to PyPI
+
+Releases use [Trusted Publishing](https://docs.pypi.org/trusted-publishers/) — push a version tag and GitHub Actions uploads `jupyterlab-kuusi` to PyPI. No API token in the repo.
+
+### One-time setup
+
+1. On [pypi.org](https://pypi.org) → **Publishing** → add a **pending publisher** (or create it on the project after the first upload):
+   - **PyPI project name:** `jupyterlab-kuusi`
+   - **Owner:** `xianghancao`
+   - **Repository:** `Kuusi`
+   - **Workflow name:** `publish-pypi.yml`
+   - **Environment name:** `pypi`
+2. In GitHub → **Settings → Environments** → create environment **`pypi`** (optional: require reviewers).
+
+### Release steps
+
+```bash
+# 1. Bump every version string to the same X.Y.Z
+npm run check:versions
+
+# 2. Update CHANGELOG.md / README version table, commit
+git add -A && git commit -m "Release X.Y.Z …"
+
+# 3. Tag and push (triggers .github/workflows/publish-pypi.yml)
+git tag vX.Y.Z
+git push origin main
+git push origin vX.Y.Z
+```
+
+You can also run the workflow manually via **Actions → Publish PyPI → Run workflow**.
+
+After it succeeds:
+
+```bash
+python -m pip install -U jupyterlab-kuusi
 ```
 
 ## Repository layout

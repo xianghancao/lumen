@@ -154,6 +154,10 @@ Place assets in `docs/assets/`:
    - **Summary** — what changed and why
    - **Test plan** — steps you ran to verify the change
 
+## Publishing a release
+
+See [Publishing to PyPI](./README.md#publishing-to-pypi) in the README. Short version: bump versions → update changelog → tag `vX.Y.Z` → push. Workflow `.github/workflows/publish-pypi.yml` builds the production wheel and uploads via Trusted Publishing.
+
 ## Reporting bugs
 
 Include:
